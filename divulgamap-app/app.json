@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "divulgamap-app",
+    "slug": "divulgamap-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo-pin.png",
+    "scheme": "divulgamapapp",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/logo-pin.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.loth00.divulgamapapp"
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/logo-pin.png"
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-font"
+    ],
+    "experiments": {
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "418d1e9f-f2eb-438f-a86f-256cc9595ad8"
+      }
+    }
+  }
+}
