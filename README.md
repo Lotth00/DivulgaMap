@@ -7,7 +7,7 @@ Este repositório contém as duas partes do projeto:
 - **`divulgamap-backend/`** — API REST (Node.js + Express + PostgreSQL)
 - **`divulgamap-app/`** — aplicativo mobile (React Native + Expo)
 
-## 🌐 Ambiente em produção (homologação)
+## Ambiente em produção (homologação)
 
 | Recurso | Link |
 |---|---|
@@ -18,7 +18,7 @@ Este repositório contém as duas partes do projeto:
 > O aplicativo já vem configurado para falar com a API de produção acima —
 > **não é necessário estar na mesma rede Wi-Fi nem trocar nenhum IP** para testar.
 
-## 🔑 Credenciais de teste
+## Credenciais de teste
 
 | Perfil | E-mail | Senha |
 |---|---|---|
@@ -34,7 +34,7 @@ Para recriar o banco do zero:
 psql "<connection-string-do-postgres>" -f divulgamap-backend/schema.sql
 ```
 
-## ▶️ Rodando localmente
+## Rodando localmente
 
 ### Backend
 
@@ -72,7 +72,7 @@ contra um backend rodando local, troque o `baseURL` pelo IP da sua máquina na r
 local (ex: `http://192.168.0.10:3000`) — instruções completas no guia de implementação
 do projeto.
 
-## 📂 Estrutura de rotas da API
+## Estrutura de rotas da API
 
 | Rota | Descrição |
 |---|---|
@@ -86,13 +86,13 @@ do projeto.
 | `/horarios` | Horários de funcionamento |
 | `/listas` | Listas/categorias |
 
-## 🛠️ Stack técnica
+## Stack técnica
 
 - **Backend:** Node.js, Express 5, PostgreSQL (`pg`), JWT (`jsonwebtoken`), `bcrypt`
   para hash de senha, `nodemailer` para e-mails, `multer` para upload de arquivos.
 - **App:** React Native (Expo SDK), React Navigation, Axios, AsyncStorage,
   `react-native-maps` + `expo-location`.
 
-## 📄 Licença
+## Licença
 
 Ver [LICENSE](./LICENSE).
