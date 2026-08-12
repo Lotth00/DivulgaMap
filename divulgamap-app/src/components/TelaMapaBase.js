@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
-import MapView from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,19 +10,111 @@ import colors from '../theme/colors';
 
 const CATEGORIAS = ['Alimentação', 'Moda', 'Bem-Estar', 'Serviços Gerais', 'Tecnologia', 'Construção'];
 
-const REGIAO_TAQUARA = { latitude: -29.6494, longitude: -50.7817, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+const CENTRO_TAQUARA = { latitude: -29.6494, longitude: -50.7817 };
+const LIMITES_TAQUARA = {
+  norte: -29.58,
+  sul: -29.72,
+  leste: -50.70,
+  oeste: -50.86,
+};
+
+const HTML_MAPA = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #mapa { height: 100%; margin: 0; padding: 0; background: #E8E8E8; }
+    .leaflet-control-attribution { font-size: 9px; }
+  </style>
+</head>
+<body>
+  <div id="mapa"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var mapa = L.map('mapa', {
+      center: [${CENTRO_TAQUARA.latitude}, ${CENTRO_TAQUARA.longitude}],
+      zoom: 14,
+      minZoom: 13,
+      maxZoom: 19,
+      maxBounds: [
+        [${LIMITES_TAQUARA.sul}, ${LIMITES_TAQUARA.oeste}],
+        [${LIMITES_TAQUARA.norte}, ${LIMITES_TAQUARA.leste}]
+      ],
+      maxBoundsViscosity: 1.0,
+      zoomControl: false,
+      attributionControl: true,
+    });
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap',
+    }).addTo(mapa);
+
+    var marcadoresAtuais = [];
+    var marcadorUsuario = null;
+
+    function limparMarcadores() {
+      marcadoresAtuais.forEach(function (m) { mapa.removeLayer(m); });
+      marcadoresAtuais = [];
+    }
+
+    function receberMensagem(evento) {
+      try {
+        var dados = JSON.parse(evento.data);
+
+        if (dados.tipo === 'PONTOS') {
+          limparMarcadores();
+          dados.pontos.forEach(function (ponto) {
+            var marcador = L.marker([ponto.latitude, ponto.longitude]).addTo(mapa);
+            if (ponto.titulo) {
+              marcador.bindPopup('<b>' + ponto.titulo + '</b>' + (ponto.descricao ? '<br>' + ponto.descricao : ''));
+            }
+            marcadoresAtuais.push(marcador);
+          });
+        }
+
+        if (dados.tipo === 'LOCALIZACAO_USUARIO') {
+          if (marcadorUsuario) mapa.removeLayer(marcadorUsuario);
+          marcadorUsuario = L.circleMarker([dados.latitude, dados.longitude], {
+            radius: 8,
+            color: '#FFFFFF',
+            weight: 2,
+            fillColor: '#1E90FF',
+            fillOpacity: 1,
+          }).addTo(mapa);
+        }
+      } catch (erro) {
+        // ignora mensagens que não sejam JSON válido
+      }
+    }
+
+    // Android dispara em 'document', iOS dispara em 'window' — registrando os dois
+    // evita ficar dependendo de qual plataforma está rodando.
+    document.addEventListener('message', receberMensagem);
+    window.addEventListener('message', receberMensagem);
+
+    // Avisa o React Native que o mapa já carregou e está pronto para receber dados.
+    window.ReactNativeWebView.postMessage(JSON.stringify({ tipo: 'PRONTO' }));
+  </script>
+</body>
+</html>
+`;
 
 export default function TelaMapaBase({
   busca, onMudarBusca,
   categoriaSelecionada, onMudarCategoria,
-  marcadores = null,
+  pontos = [],
   children,
 }) {
   const insets = useSafeAreaInsets();
   const bottomSheetRef = useRef(null);
+  const webViewRef = useRef(null);
 
   const snapPoints = useMemo(() => ['50%', '92%'], []);
-  const [regiaoMapa, setRegiaoMapa] = useState(REGIAO_TAQUARA);
+  const [mapaPronto, setMapaPronto] = useState(false);
+  const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -30,20 +122,46 @@ export default function TelaMapaBase({
       if (status !== 'granted') return;
 
       const localizacao = await Location.getCurrentPositionAsync({});
-      setRegiaoMapa({
+      setLocalizacaoUsuario({
         latitude: localizacao.coords.latitude,
         longitude: localizacao.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
       });
     })();
   }, []);
 
+  const enviarParaMapa = useCallback((mensagem) => {
+    webViewRef.current?.postMessage(JSON.stringify(mensagem));
+  }, []);
+
+  useEffect(() => {
+    if (!mapaPronto) return;
+    enviarParaMapa({ tipo: 'PONTOS', pontos });
+  }, [mapaPronto, pontos, enviarParaMapa]);
+
+  useEffect(() => {
+    if (!mapaPronto || !localizacaoUsuario) return;
+    enviarParaMapa({ tipo: 'LOCALIZACAO_USUARIO', ...localizacaoUsuario });
+  }, [mapaPronto, localizacaoUsuario, enviarParaMapa]);
+
+  function receberMensagemDoMapa(evento) {
+    try {
+      const dados = JSON.parse(evento.nativeEvent.data);
+      if (dados.tipo === 'PRONTO') setMapaPronto(true);
+    } catch (erro) {
+      
+    }
+  }
+
   return (
     <View style={styles.container}>
-      <MapView style={StyleSheet.absoluteFillObject} region={regiaoMapa}>
-        {marcadores}
-      </MapView>
+      <WebView
+        ref={webViewRef}
+        style={StyleSheet.absoluteFillObject}
+        source={{ html: HTML_MAPA }}
+        onMessage={receberMensagemDoMapa}
+        javaScriptEnabled
+        domStorageEnabled
+      />
 
       <View style={[styles.topo, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <LinearGradient colors={[colors.gradienteTopo, colors.gradienteBase]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>

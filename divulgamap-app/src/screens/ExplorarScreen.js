@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { Marker } from 'react-native-maps';
 import { StatusBar } from 'expo-status-bar';
 import api from '../services/api';
 import TelaMapaBase from '../components/TelaMapaBase';
@@ -28,16 +27,15 @@ export default function ExplorarScreen() {
     }
   }
 
-  const marcadores = empresas
+  const pontos = empresas
     .filter((empresa) => empresa.latitude && empresa.longitude)
-    .map((empresa) => (
-      <Marker
-        key={empresa.id_empresa}
-        coordinate={{ latitude: parseFloat(empresa.latitude), longitude: parseFloat(empresa.longitude) }}
-        title={empresa.nome_fantasia}
-        description={empresa.categorias}
-      />
-    ));
+    .map((empresa) => ({
+      id: empresa.id_empresa,
+      latitude: parseFloat(empresa.latitude),
+      longitude: parseFloat(empresa.longitude),
+      titulo: empresa.nome_fantasia,
+      descricao: empresa.categorias,
+    }));
 
   return (
     <View style={{ flex: 1 }}>
@@ -47,7 +45,7 @@ export default function ExplorarScreen() {
         onMudarBusca={setBusca}
         categoriaSelecionada={categoriaSelecionada}
         onMudarCategoria={setCategoriaSelecionada}
-        marcadores={marcadores}
+        pontos={pontos}
       >
         <Text style={styles.titulo}>Empresas por perto</Text>
 
