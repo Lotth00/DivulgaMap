@@ -1,9 +1,6 @@
--- Dados iniciais do DivulgaMap.
--- Pode rodar quantas vezes quiser: o ON CONFLICT ignora o que já existe.
--- Rodar com: node migrate.js --seed
+-- Dados iniciais do DivulgaMap
 
--- Categorias: os mesmos nomes dos chips do mapa (TelaMapaBase.js),
--- porque o filtro do app compara pelo nome.
+-- Categorias, com os mesmos nomes dos chips do mapa (TelaMapaBase.js)
 INSERT INTO public.categorias (nome) VALUES
   ('Alimentação'),
   ('Moda'),

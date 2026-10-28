@@ -1,7 +1,4 @@
-// Cria as tabelas do schema.sql no banco da DATABASE_URL (Neon).
-// Uso:
-//   node migrate.js          -> cria as tabelas (só se o banco estiver vazio)
-//   node migrate.js --seed   -> insere os dados iniciais do seed.sql (pode rodar quantas vezes quiser)
+// Criação das tabelas (schema.sql) e dos dados iniciais (seed.sql, com --seed) no banco da DATABASE_URL
 
 require('dotenv').config();
 const fs = require('fs');
@@ -14,14 +11,11 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // o Neon exige SSL
+  ssl: { rejectUnauthorized: false },
 });
 
-// O schema.sql veio de um pg_dump, que traz coisas que só funcionam no seu Postgres local:
-// - linhas "\restrict" / "\unrestrict" são comandos do psql, não SQL;
-// - "OWNER TO postgres" falha no Neon, porque lá o usuário não se chama postgres;
-// - "SET transaction_timeout" só existe a partir do Postgres 17.
-// Limpamos isso aqui, sem alterar o arquivo original.
+// Remoção dos trechos do pg_dump incompatíveis com o Neon:
+// comandos do psql (\restrict), donos de tabela (OWNER TO) e transaction_timeout
 function limparDump(sql) {
   return sql
     .split('\n')

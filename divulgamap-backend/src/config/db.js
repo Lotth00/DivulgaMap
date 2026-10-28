@@ -1,8 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Com DATABASE_URL (Neon, no .env local e no Render): conecta pela URL completa.
-// O Neon exige SSL. Sem DATABASE_URL: usa as variáveis separadas, para um Postgres local.
+// Conexão com o banco: pela DATABASE_URL (Neon, com SSL) ou pelas variáveis DB_* (Postgres local)
 const pool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
