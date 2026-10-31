@@ -1,0 +1,95 @@
+tags:
+  - name: produtos
+    description: Produtos e serviços de uma empresa e importação por planilha
+
+paths:
+  /produtos/empresa/{empresaId}:
+    get:
+      tags: [produtos]
+      summary: Produtos disponíveis de uma empresa (pública)
+      parameters:
+        - $ref: '#/components/parameters/EmpresaId'
+      responses:
+        '200':
+          description: Lista de produtos, em ordem alfabética
+          content:
+            application/json:
+              example:
+                - { id_produto: 1, empresa_id: 1, tipo_item: produto, nome: Pão francês, preco: "1.50", unidade_medida: un, disponivel: true, categoria_nome: Alimentação }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /produtos:
+    post:
+      tags: [produtos]
+      summary: Cria um produto ou serviço
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empresa_id, nome, preco]
+              properties:
+                empresa_id: { type: integer }
+                tipo_item: { type: string, enum: [produto, servico], default: produto }
+                nome: { type: string }
+                categoria_id: { type: integer, nullable: true }
+                descricao: { type: string }
+                preco: { type: number }
+                unidade_medida: { type: string, default: un }
+            example:
+              empresa_id: 1
+              nome: Pão francês
+              preco: 1.5
+      responses:
+        '201':
+          description: Produto criado
+          content:
+            application/json:
+              example: { id_produto: 1, empresa_id: 1, tipo_item: produto, nome: Pão francês, preco: "1.50", unidade_medida: un, disponivel: true }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /produtos/{empresaId}/planilha:
+    post:
+      tags: [produtos]
+      summary: Importa produtos de uma planilha (wizard, passos 11 e 12)
+      description: |
+        Aceita .xlsx, .xls ou .csv no campo `planilha`. Colunas da primeira aba:
+        **Tipo de Item** (Produto ou Serviço), **Nome do Item**, **Categoria** (uma das cadastradas),
+        **Preço Regular** (número maior que zero) e **Unidade de Medida** (un, kg, hora...).
+        Se qualquer linha tiver erro, nada é gravado e a resposta lista os problemas por linha.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/EmpresaId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [planilha]
+              properties:
+                planilha: { type: string, format: binary }
+      responses:
+        '201':
+          description: Planilha importada
+          content:
+            application/json:
+              example: { mensagem: 12 itens importados com sucesso. }
+        '400':
+          description: Arquivo faltando, formato errado ou linhas inválidas
+          content:
+            application/json:
+              example:
+                erro: A planilha tem linhas inválidas.
+                totalLinhas: 3
+                detalhes:
+                  - linha: 2
+                    problemas:
+                      - { coluna: Preço Regular, motivo: deve ser um número maior que zero }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }

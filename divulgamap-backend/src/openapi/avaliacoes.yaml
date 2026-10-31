@@ -1,0 +1,56 @@
+tags:
+  - name: avaliacoes
+    description: Avaliações (nota de 1 a 5) das empresas
+
+paths:
+  /avaliacoes/empresa/{empresaId}:
+    get:
+      tags: [avaliacoes]
+      summary: Avaliações de uma empresa (pública)
+      parameters:
+        - $ref: '#/components/parameters/EmpresaId'
+      responses:
+        '200':
+          description: Lista de avaliações, das mais novas para as mais antigas, com o nome de quem avaliou
+          content:
+            application/json:
+              example:
+                - { id_avaliacao: 1, usuario_id: 1, empresa_id: 1, nota: 4, comentario: Muito bom, usuario_nome: Teste }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes:
+    post:
+      tags: [avaliacoes]
+      summary: Avalia uma empresa e recalcula a nota média dela
+      description: Cada usuário avalia cada empresa uma vez só.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empresa_id, nota]
+              properties:
+                empresa_id: { type: integer }
+                nota: { type: integer, minimum: 1, maximum: 5 }
+                comentario: { type: string }
+            example:
+              empresa_id: 1
+              nota: 4
+              comentario: Muito bom
+      responses:
+        '201':
+          description: Avaliação registrada
+          content:
+            application/json:
+              example: { mensagem: Avaliação registrada. }
+        '400':
+          description: O usuário já avaliou esta empresa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Você já avaliou esta empresa. Edite sua avaliação em vez de criar outra. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }

@@ -1,0 +1,47 @@
+tags:
+  - name: listas
+    description: Listas de itens salvos do usuário (ex. Favoritos)
+
+paths:
+  /listas/minhas:
+    get:
+      tags: [listas]
+      summary: Listas do usuário logado
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Listas, das mais novas para as mais antigas
+          content:
+            application/json:
+              example:
+                - { id_lista: 1, usuario_id: 1, nome: Favoritos, privacidade: privada }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /listas:
+    post:
+      tags: [listas]
+      summary: Cria uma lista
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string }
+                privacidade: { type: string, enum: [privada, publica], default: privada }
+            example:
+              nome: Mercados
+      responses:
+        '201':
+          description: Lista criada
+          content:
+            application/json:
+              example: { id_lista: 2, usuario_id: 1, nome: Mercados, privacidade: privada }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }

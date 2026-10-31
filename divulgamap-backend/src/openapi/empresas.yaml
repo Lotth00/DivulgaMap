@@ -1,0 +1,495 @@
+tags:
+  - name: empresas
+    description: Listagem, cadastro em etapas (wizard), verificação e aprovação de empresas
+
+components:
+  schemas:
+    EmpresaResumo:
+      type: object
+      properties:
+        id_empresa: { type: integer, example: 1 }
+        nome_fantasia: { type: string, example: Padaria São João }
+        tipo: { type: string, enum: [comercio, servico, ambos], example: comercio }
+        descricao: { type: string, example: Pães e doces }
+        telefone: { type: string, example: "51999990000" }
+        site: { type: string, nullable: true }
+        google_maps_url: { type: string, nullable: true }
+        nota_media: { type: string, example: "4.50" }
+        endereco: { type: string, example: "Rua Júlio de Castilhos, 2000" }
+        bairro: { type: string, example: Centro }
+        latitude: { type: string, example: "-29.6505000" }
+        longitude: { type: string, example: "-50.7810000" }
+        categorias: { type: string, example: Alimentação }
+    Empresa:
+      type: object
+      description: Linha completa da tabela empresas, com o endereço quando houver
+      properties:
+        id_empresa: { type: integer, example: 1 }
+        id_usuario: { type: integer, example: 2 }
+        nome_fantasia: { type: string, example: Padaria São João }
+        tipo: { type: string, enum: [comercio, servico, ambos] }
+        telefone: { type: string, nullable: true }
+        site: { type: string, nullable: true }
+        google_maps_url: { type: string, nullable: true }
+        descricao: { type: string, nullable: true }
+        status: { type: string, enum: [rascunho, pendente_aprovacao, aprovada, rejeitada] }
+        nota_media: { type: string, example: "0.00" }
+        total_avaliacoes: { type: integer, example: 0 }
+        verificado_em: { type: string, format: date-time, nullable: true }
+        motivo_rejeicao: { type: string, nullable: true }
+        data_cadastro: { type: string, format: date-time }
+
+paths:
+  /empresas:
+    get:
+      tags: [empresas]
+      summary: Lista as empresas aprovadas (pública)
+      description: Só aparecem empresas com status `aprovada`. A busca procura no nome (sem diferenciar maiúsculas).
+      parameters:
+        - in: query
+          name: categoria
+          schema: { type: string }
+          description: Nome exato da categoria
+          example: Alimentação
+        - in: query
+          name: busca
+          schema: { type: string }
+          description: Parte do nome da empresa
+          example: padaria
+      responses:
+        '200':
+          description: Lista de empresas (pode ser vazia)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/EmpresaResumo' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/rascunho-atual:
+    get:
+      tags: [empresas]
+      summary: Rascunho de empresa em andamento do usuário logado
+      description: Usado para continuar o cadastro de onde parou.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Indica se existe rascunho e, se existir, os dados dele
+          content:
+            application/json:
+              examples:
+                semRascunho:
+                  value: { existeRascunho: false }
+                comRascunho:
+                  value: { existeRascunho: true, empresa: { id_empresa: 5, nome_fantasia: Doceria Teste, status: rascunho } }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/pendentes:
+    get:
+      tags: [empresas]
+      summary: Empresas esperando aprovação (só admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista das empresas com status `pendente_aprovacao`
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Empresa' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}:
+    get:
+      tags: [empresas]
+      summary: Detalhe de uma empresa aprovada (pública)
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      responses:
+        '200':
+          description: Dados da empresa com o endereço
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    patch:
+      tags: [empresas]
+      summary: Atualiza o rascunho, um pedaço por vez (wizard, passos 2, 3, 5, 8 e 9)
+      description: |
+        Só o dono. Só os campos enviados mudam.
+        Ao enviar `endereco` ou `bairro`, o endereço é localizado no mapa pelo OpenStreetMap;
+        se não for encontrado, a resposta é 400.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tipo: { type: string, enum: [comercio, servico, ambos] }
+                endereco: { type: string }
+                bairro: { type: string }
+                telefone: { type: string }
+                site: { type: string }
+                google_maps_url: { type: string }
+                descricao: { type: string }
+                horarios:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      dia_semana: { type: integer, minimum: 0, maximum: 6, description: 0 = domingo … 6 = sábado }
+                      abertura: { type: string, example: "08:00" }
+                      fechamento: { type: string, example: "18:00" }
+                      fechado: { type: boolean }
+            example:
+              endereco: Rua Júlio de Castilhos, 2000
+              bairro: Centro
+              telefone: "51999990000"
+              descricao: Pães e doces
+      responses:
+        '200':
+          description: Empresa atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '400':
+          description: Endereço não localizado, ou endereço e bairro faltando no primeiro cadastro
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Não conseguimos localizar esse endereço no mapa. Confira o endereço e o bairro. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/rascunho:
+    post:
+      tags: [empresas]
+      summary: Cria o rascunho da empresa (wizard, passo 1)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome_fantasia]
+              properties:
+                nome_fantasia: { type: string }
+                categorias:
+                  type: array
+                  description: Nomes das categorias (os que não existirem são ignorados)
+                  items: { type: string }
+            example:
+              nome_fantasia: Padaria São João
+              categorias: [Alimentação]
+      responses:
+        '201':
+          description: Rascunho criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/verificar-duplicidade:
+    post:
+      tags: [empresas]
+      summary: Procura empresas aprovadas com nome ou endereço parecidos (wizard, passo 4)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome_fantasia: { type: string }
+                endereco: { type: string }
+            example:
+              nome_fantasia: Padaria São João
+              endereco: Rua Júlio de Castilhos
+      responses:
+        '200':
+          description: Resultado da verificação
+          content:
+            application/json:
+              example:
+                possivelDuplicata: true
+                correspondencias: [{ id_empresa: 1, nome_fantasia: Padaria São João, endereco: "Rua Júlio de Castilhos, 2000" }]
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/reivindicar:
+    post:
+      tags: [empresas]
+      summary: Pede para assumir uma empresa aprovada ("essa empresa é minha")
+      description: Avisa a administração por e-mail.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mensagem: { type: string }
+            example:
+              mensagem: Sou a dona da padaria; posso enviar o CNPJ.
+      responses:
+        '201':
+          description: Solicitação registrada
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/denunciar:
+    post:
+      tags: [empresas]
+      summary: Denuncia uma empresa (errada, duplicada ou falsa)
+      description: Avisa a administração por e-mail.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo: { type: string }
+                mensagem: { type: string }
+            example:
+              motivo: duplicada
+              mensagem: Essa padaria já está cadastrada com outro nome.
+      responses:
+        '201':
+          description: Denúncia registrada
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/enviar-codigo:
+    post:
+      tags: [empresas]
+      summary: Envia o código de verificação de 6 dígitos (wizard, passo 6)
+      description: Por e-mail, para o e-mail do usuário logado. Por SMS é simulado, e o código aparece no terminal do backend. Vale 10 minutos.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [metodo]
+              properties:
+                metodo: { type: string, enum: [email, sms] }
+            example:
+              metodo: sms
+      responses:
+        '200':
+          description: Código enviado
+          content:
+            application/json:
+              example: { mensagem: Código enviado. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/confirmar-codigo:
+    post:
+      tags: [empresas]
+      summary: Confirma o código de verificação (wizard, passo 7)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [codigo]
+              properties:
+                codigo: { type: string }
+            example:
+              codigo: "123456"
+      responses:
+        '200':
+          description: Empresa verificada
+          content:
+            application/json:
+              example: { verificado: true }
+        '400':
+          description: Código inválido ou expirado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Código inválido ou expirado. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/fotos:
+    post:
+      tags: [empresas]
+      summary: Guarda a URL de uma foto da empresa (wizard, passo 10)
+      description: O app envia a imagem para um serviço de fotos e manda só a URL.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string }
+                ordem: { type: integer }
+            example:
+              url: https://picsum.photos/600/400
+              ordem: 0
+      responses:
+        '201':
+          description: Foto registrada
+          content:
+            application/json:
+              example: { id_foto: 1, empresa_id: 1, url: https://picsum.photos/600/400, ordem: 0 }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/submeter:
+    post:
+      tags: [empresas]
+      summary: Envia a empresa para aprovação (wizard, passo 13)
+      description: Só o dono. Exige verificação feita, endereço, nome, tipo e telefone.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      responses:
+        '200':
+          description: Status passa a ser `pendente_aprovacao`
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '400':
+          description: Falta verificação, endereço ou campo obrigatório
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Complete a verificação (SMS/e-mail) antes de enviar. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/aprovar:
+    patch:
+      tags: [empresas]
+      summary: Aprova uma empresa (só admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      responses:
+        '200':
+          description: Empresa aprovada (passa a aparecer no mapa)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/rejeitar:
+    patch:
+      tags: [empresas]
+      summary: Rejeita uma empresa com um motivo (só admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo: { type: string }
+            example:
+              motivo: Endereço incompleto.
+      responses:
+        '200':
+          description: Empresa rejeitada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Empresa' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/solicitacoes/pendentes:
+    get:
+      tags: [empresas]
+      summary: Reivindicações e denúncias esperando revisão (só admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de solicitações pendentes, com o nome da empresa
+          content:
+            application/json:
+              example:
+                - { id_solicitacao: 1, empresa_id: 1, id_usuario: 3, tipo: reivindicacao, mensagem: Sou a dona., status: pendente, nome_fantasia: Padaria São João }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/solicitacoes/{id}/aprovar:
+    patch:
+      tags: [empresas]
+      summary: Aprova uma solicitação (só admin)
+      description: Reivindicação aprovada passa a empresa para quem pediu; denúncia aprovada rejeita a empresa.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdSolicitacao'
+      responses:
+        '200':
+          description: Solicitação aprovada
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/solicitacoes/{id}/rejeitar:
+    patch:
+      tags: [empresas]
+      summary: Rejeita uma solicitação (só admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdSolicitacao'
+      responses:
+        '200':
+          description: Solicitação rejeitada
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }

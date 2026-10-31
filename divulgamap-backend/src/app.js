@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const documentoApi = require('./openapi');
 
 const authRoutes = require('./routes/auth.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
@@ -26,6 +28,12 @@ app.use('/avaliacoes', avaliacoesRoutes);
 app.use('/listas', listasRoutes);
 app.use('/salvos', salvosRoutes);
 app.use('/horarios', horariosRoutes);
+
+// Documentação da API (Swagger)
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoApi, {
+  customSiteTitle: 'DivulgaMap API',
+  swaggerOptions: { persistAuthorization: true },
+}));
 
 
 module.exports = app;

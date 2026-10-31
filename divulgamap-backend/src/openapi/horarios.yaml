@@ -1,0 +1,53 @@
+tags:
+  - name: horarios
+    description: Horário de funcionamento por dia da semana
+
+paths:
+  /horarios/empresa/{empresaId}:
+    get:
+      tags: [horarios]
+      summary: Horários de uma empresa (pública)
+      parameters:
+        - $ref: '#/components/parameters/EmpresaId'
+      responses:
+        '200':
+          description: Um item por dia cadastrado, de domingo (0) a sábado (6)
+          content:
+            application/json:
+              example:
+                - { id_horario: 1, empresa_id: 1, dia_semana: 1, abertura: "07:00:00", fechamento: "19:00:00", fechado: false }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /horarios:
+    post:
+      tags: [horarios]
+      summary: Cadastra ou substitui o horário de um dia
+      description: "`dia_semana`: 0 = domingo, 1 = segunda … 6 = sábado. Se o dia já existir, ele é substituído."
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empresa_id, dia_semana]
+              properties:
+                empresa_id: { type: integer }
+                dia_semana: { type: integer, minimum: 0, maximum: 6 }
+                abertura: { type: string, example: "07:00" }
+                fechamento: { type: string, example: "19:00" }
+                fechado: { type: boolean, default: false }
+            example:
+              empresa_id: 1
+              dia_semana: 1
+              abertura: "07:00"
+              fechamento: "19:00"
+      responses:
+        '201':
+          description: Horário salvo
+          content:
+            application/json:
+              example: { id_horario: 1, empresa_id: 1, dia_semana: 1, abertura: "07:00:00", fechamento: "19:00:00", fechado: false }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
