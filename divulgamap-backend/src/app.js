@@ -12,6 +12,7 @@ const avaliacoesRoutes = require('./routes/avaliacoes.routes');
 const listasRoutes = require('./routes/listas.routes');
 const salvosRoutes = require('./routes/salvos.routes');
 const horariosRoutes = require('./routes/horarios.routes');
+const categoriasRoutes = require('./routes/categorias.routes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/avaliacoes', avaliacoesRoutes);
 app.use('/listas', listasRoutes);
 app.use('/salvos', salvosRoutes);
 app.use('/horarios', horariosRoutes);
+app.use('/categorias', categoriasRoutes);
 
 // Documentação da API (Swagger)
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoApi, {

@@ -1,0 +1,18 @@
+tags:
+  - name: categorias
+    description: Categorias de empresas e produtos
+
+paths:
+  /categorias:
+    get:
+      tags: [categorias]
+      summary: Lista as categorias em ordem alfabética (pública)
+      responses:
+        '200':
+          description: Lista de categorias
+          content:
+            application/json:
+              example:
+                - { id_categoria: 1, nome: Alimentação, icone: null }
+                - { id_categoria: 3, nome: Bem-Estar, icone: null }
+        '500': { $ref: '#/components/responses/ErroServidor' }
