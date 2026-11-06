@@ -48,8 +48,10 @@ paths:
           content:
             application/json:
               example: { id_produto: 1, empresa_id: 1, tipo_item: produto, nome: Pão francês, preco: "1.50", unidade_medida: un, disponivel: true }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /produtos/{empresaId}/planilha:
@@ -92,4 +94,5 @@ paths:
                       - { coluna: Preço Regular, motivo: deve ser um número maior que zero }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }

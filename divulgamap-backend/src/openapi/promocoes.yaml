@@ -116,11 +116,12 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Promocao' }
         '400':
-          description: Campos que faltam para o tipo, ou relâmpago com mais de 24 horas
+          description: Campos que faltam para o tipo, relâmpago com mais de 24 horas ou produto de outra empresa
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
               example: { erro: Promoções relâmpago devem durar no máximo 24 horas. }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }

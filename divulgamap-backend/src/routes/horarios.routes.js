@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
+const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 
 const router = express.Router();
 
@@ -20,9 +21,10 @@ router.get('/empresa/:empresaId', async (req, res) => {
 });
 
 // POST protegida — cadastra (ou substitui) o horário de um dia específico
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
-    const { empresa_id, dia_semana, abertura, fechamento, fechado } = req.body;
+    const { dia_semana, abertura, fechamento, fechado } = req.body;
+    const empresa_id = req.empresa.id_empresa;
 
     const existente = await pool.query(
       'SELECT * FROM horarios WHERE empresa_id = $1 AND dia_semana = $2',

@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
+const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 
 const router = express.Router();
 
@@ -24,9 +25,10 @@ router.get('/empresa/:empresaId', async (req, res) => {
 });
 
 // CRIAR um novo produto/serviço manualmente (protegida)
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
-    const { empresa_id, tipo_item, nome, categoria_id, descricao, preco, unidade_medida } = req.body;
+    const { tipo_item, nome, categoria_id, descricao, preco, unidade_medida } = req.body;
+    const empresa_id = req.empresa.id_empresa;
 
     const novoProduto = await pool.query(
       `INSERT INTO produtos (empresa_id, tipo_item, nome, categoria_id, descricao, preco, unidade_medida)
@@ -65,7 +67,7 @@ const COLUNA_PRECO = 'Preço Regular';
 const COLUNA_UNIDADE = 'Unidade de Medida';
 
 // PASSO 11+12: recebe a planilha, valida e só grava se estiver ok
-router.post('/:empresaId/planilha', verificarToken, upload.single('planilha'), async (req, res) => {
+router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload.single('planilha'), async (req, res) => {
   try {
     const { empresaId } = req.params;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
 const verificarAdmin = require('../middlewares/admin');
+const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 
 const router = express.Router();
 
@@ -157,18 +158,9 @@ async function geocodificarEndereco(endereco, bairro) {
 }
 
 // PASSOS 2/3/5/8/9: atualiza qualquer campo do rascunho, um pedaço por vez
-router.patch('/:id', verificarToken, async (req, res) => {
+router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Segurança: confirma que a empresa é do usuário logado antes de deixar editar
-    const empresaAtual = await pool.query('SELECT * FROM empresas WHERE id_empresa = $1', [id]);
-    if (!empresaAtual.rows[0]) {
-      return res.status(404).json({ erro: 'Empresa não encontrada.' });
-    }
-    if (empresaAtual.rows[0].id_usuario !== req.usuario.id) {
-      return res.status(403).json({ erro: 'Você não pode editar esta empresa.' });
-    }
 
     const {
       tipo,                                   // passo 2
@@ -362,7 +354,7 @@ async function notificarAdminPorEmail(assunto, texto) {
 }
 
 // PASSO 6: gera e envia o código (por e-mail)
-router.post('/:id/enviar-codigo', verificarToken, async (req, res) => {
+router.post('/:id/enviar-codigo', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
     const { metodo } = req.body; // 'email' ou 'sms'
@@ -404,7 +396,7 @@ router.post('/:id/enviar-codigo', verificarToken, async (req, res) => {
 });
 
 // PASSO 7: confirma o código digitado
-router.post('/:id/confirmar-codigo', verificarToken, async (req, res) => {
+router.post('/:id/confirmar-codigo', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
     const { codigo } = req.body;
@@ -435,7 +427,7 @@ router.post('/:id/confirmar-codigo', verificarToken, async (req, res) => {
 });
 
 // PASSO 10: guarda a URL de uma foto (upload do app pro Cloudinary)
-router.post('/:id/fotos', verificarToken, async (req, res) => {
+router.post('/:id/fotos', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
     const { url, ordem } = req.body;
@@ -453,19 +445,11 @@ router.post('/:id/fotos', verificarToken, async (req, res) => {
 });
 
 // PASSO 13: muda o status de rascunho para "esperando aprovação"
-router.post('/:id/submeter', verificarToken, async (req, res) => {
+router.post('/:id/submeter', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
+    const dadosEmpresa = req.empresa;
 
-    const empresa = await pool.query('SELECT * FROM empresas WHERE id_empresa = $1', [id]);
-    const dadosEmpresa = empresa.rows[0];
-
-    if (!dadosEmpresa) {
-      return res.status(404).json({ erro: 'Empresa não encontrada.' });
-    }
-    if (dadosEmpresa.id_usuario !== req.usuario.id) {
-      return res.status(403).json({ erro: 'Você não pode enviar esta empresa para aprovação.' });
-    }
     if (!dadosEmpresa.verificado_em) {
       return res.status(400).json({ erro: 'Complete a verificação (SMS/e-mail) antes de enviar.' });
     }

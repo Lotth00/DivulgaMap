@@ -312,6 +312,7 @@ paths:
               example: { mensagem: Código enviado. }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /empresas/{id}/confirmar-codigo:
@@ -346,6 +347,7 @@ paths:
               example: { erro: Código inválido ou expirado. }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /empresas/{id}/fotos:
@@ -377,6 +379,7 @@ paths:
               example: { id_foto: 1, empresa_id: 1, url: https://picsum.photos/600/400, ordem: 0 }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /empresas/{id}/submeter:

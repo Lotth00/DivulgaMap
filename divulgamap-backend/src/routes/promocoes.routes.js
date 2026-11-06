@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
+const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 
 const router = express.Router();
 
@@ -60,13 +61,25 @@ router.get('/relampago/ativas', async (req, res) => {
 });
 
 // CRIAR uma nova promoção (protegida)
-router.post('/', verificarToken, async (req, res) => {
+router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
-    const { empresa_id, produto_id, tipo, titulo, descricao, condicao, desconto_percentual, data_inicio, data_fim } = req.body;
+    const { produto_id, tipo, titulo, descricao, condicao, desconto_percentual, data_inicio, data_fim } = req.body;
+    const empresa_id = req.empresa.id_empresa;
 
     const erroDeValidacao = validarCamposPorTipo({ tipo, desconto_percentual, condicao, data_inicio, data_fim });
     if (erroDeValidacao) {
       return res.status(400).json({ erro: erroDeValidacao });
+    }
+
+    // Produto precisa ser da mesma empresa
+    if (produto_id) {
+      const produto = await pool.query(
+        'SELECT 1 FROM produtos WHERE id_produto = $1 AND empresa_id = $2',
+        [produto_id, empresa_id]
+      );
+      if (!produto.rows[0]) {
+        return res.status(400).json({ erro: 'O produto informado não pertence a esta empresa.' });
+      }
     }
 
     const novaPromocao = await pool.query(
