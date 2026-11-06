@@ -6,10 +6,138 @@ const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 
 const router = express.Router();
 
+// Nível mínimo de semelhança da busca (0 a 1)
+const SEMELHANCA_MINIMA = 0.3;
+
+const FUSO_HORARIO = 'America/Sao_Paulo';
+const DIAS_PROCURANDO_ABERTURA = 30;
+
+// Pontuação de um texto na busca: 1 se contém o termo, senão a semelhança entre as palavras
+function pontuacaoDaBusca(coluna, termo) {
+  const texto = `unaccent(lower(${coluna}))`;
+  return `GREATEST(strict_word_similarity(${termo}, ${texto}), CASE WHEN strpos(${texto}, ${termo}) > 0 THEN 1 ELSE 0 END)`;
+}
+
+// Data e minutos do dia no fuso da empresa
+function momentoNoFuso(agora) {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: FUSO_HORARIO,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(agora)
+      .map((parte) => [parte.type, parte.value])
+  );
+  return {
+    data: `${partes.year}-${partes.month}-${partes.day}`,
+    minutos: Number(partes.hour) * 60 + Number(partes.minute),
+  };
+}
+
+function somarDias(data, dias) {
+  const resultado = new Date(`${data}T00:00:00Z`);
+  resultado.setUTCDate(resultado.getUTCDate() + dias);
+  return resultado.toISOString().slice(0, 10);
+}
+
+function diaDaSemana(data) {
+  return new Date(`${data}T00:00:00Z`).getUTCDay();
+}
+
+function paraMinutos(horario) {
+  const [horas, minutos] = horario.split(':').map(Number);
+  return horas * 60 + minutos;
+}
+
+// Dia sem atendimento: fechado, sem horário ou com exceção em vigor
+function estaFechadoNaData(horario, data) {
+  if (horario.fechado || !horario.abertura || !horario.fechamento) return true;
+  const excecaoEmVigor = !horario.data_fim || data <= horario.data_fim;
+  return horario.status !== 'normal' && excecaoEmVigor;
+}
+
+// Situação atual da empresa, inclusive com horário que vira a noite
+function calcularFuncionamento(horarios, agora = new Date()) {
+  const { data, minutos } = momentoNoFuso(agora);
+  const ontem = somarDias(data, -1);
+
+  const abertoAgora = horarios.some((horario) => {
+    if (horario.dia_semana === diaDaSemana(data) && !estaFechadoNaData(horario, data)) {
+      const abertura = paraMinutos(horario.abertura);
+      const fechamento = paraMinutos(horario.fechamento);
+      if (abertura > fechamento ? minutos >= abertura : minutos >= abertura && minutos < fechamento) {
+        return true;
+      }
+    }
+    if (horario.dia_semana === diaDaSemana(ontem) && !estaFechadoNaData(horario, ontem)) {
+      const abertura = paraMinutos(horario.abertura);
+      const fechamento = paraMinutos(horario.fechamento);
+      return abertura > fechamento && minutos < fechamento;
+    }
+    return false;
+  });
+
+  if (abertoAgora) {
+    return { aberto_agora: true, proxima_abertura: null };
+  }
+
+  for (let dias = 0; dias <= DIAS_PROCURANDO_ABERTURA; dias++) {
+    const dataTestada = somarDias(data, dias);
+    const proximo = horarios.find(
+      (horario) =>
+        horario.dia_semana === diaDaSemana(dataTestada) &&
+        !estaFechadoNaData(horario, dataTestada) &&
+        (dias > 0 || paraMinutos(horario.abertura) > minutos)
+    );
+    if (proximo) {
+      return {
+        aberto_agora: false,
+        proxima_abertura: {
+          data: dataTestada,
+          dia_semana: proximo.dia_semana,
+          hora: proximo.abertura.slice(0, 5),
+        },
+      };
+    }
+  }
+
+  return { aberto_agora: false, proxima_abertura: null };
+}
+
 // LISTAR empresas (rota pública) — só empresas já APROVADAS aparecem aqui
 router.get('/', async (req, res) => {
   try {
-    const { categoria, busca } = req.query;
+    const { categoria } = req.query;
+    const busca = typeof req.query.busca === 'string' ? req.query.busca.trim() : '';
+    const valores = [];
+
+    let juncaoDaBusca = '';
+    if (busca) {
+      valores.push(busca, SEMELHANCA_MINIMA);
+      const termo = 'unaccent(lower($1::text))';
+      juncaoDaBusca = `
+      CROSS JOIN LATERAL (
+        SELECT GREATEST(
+          ${pontuacaoDaBusca('e.nome_fantasia', termo)},
+          COALESCE((
+            SELECT MAX(${pontuacaoDaBusca('c3.nome', termo)})
+            FROM empresa_categoria ec3
+            JOIN categorias c3 ON c3.id_categoria = ec3.categoria_id
+            WHERE ec3.empresa_id = e.id_empresa
+          ), 0),
+          COALESCE((
+            SELECT MAX(${pontuacaoDaBusca('p.nome', termo)})
+            FROM produtos p
+            WHERE p.empresa_id = e.id_empresa AND p.disponivel = TRUE
+          ), 0)
+        ) AS relevancia
+      ) pontuacao`;
+    }
 
     let sql = `
       SELECT
@@ -30,9 +158,13 @@ router.get('/', async (req, res) => {
       LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
       LEFT JOIN empresa_categoria ec ON ec.empresa_id = e.id_empresa
       LEFT JOIN categorias c ON c.id_categoria = ec.categoria_id
+      ${juncaoDaBusca}
       WHERE e.status = 'aprovada'
     `;
-    const valores = [];
+
+    if (busca) {
+      sql += ` AND pontuacao.relevancia >= $2`;
+    }
 
     if (categoria) {
       valores.push(categoria);
@@ -43,12 +175,11 @@ router.get('/', async (req, res) => {
       )`;
     }
 
-    if (busca) {
-      valores.push(`%${busca}%`);
-      sql += ` AND e.nome_fantasia ILIKE $${valores.length}`;
-    }
-
     sql += ` GROUP BY e.id_empresa, en.endereco, en.bairro, en.latitude, en.longitude`;
+
+    if (busca) {
+      sql += `, pontuacao.relevancia ORDER BY pontuacao.relevancia DESC, e.nome_fantasia`;
+    }
 
     const resultado = await pool.query(sql, valores);
     return res.json(resultado.rows);
@@ -107,7 +238,34 @@ router.get('/:id', async (req, res) => {
     if (!resultado.rows[0]) {
       return res.status(404).json({ erro: 'Empresa não encontrada.' });
     }
-    return res.json(resultado.rows[0]);
+
+    const [categorias, fotos, horarios] = await Promise.all([
+      pool.query(
+        `SELECT c.nome
+         FROM empresa_categoria ec
+         JOIN categorias c ON c.id_categoria = ec.categoria_id
+         WHERE ec.empresa_id = $1
+         ORDER BY c.nome`,
+        [id]
+      ),
+      pool.query('SELECT id_foto, url, ordem FROM fotos_empresa WHERE empresa_id = $1 ORDER BY ordem, id_foto', [id]),
+      pool.query(
+        `SELECT id_horario, empresa_id, dia_semana, abertura, fechamento, fechado,
+                to_char(data_fim, 'YYYY-MM-DD') AS data_fim, status
+         FROM horarios
+         WHERE empresa_id = $1
+         ORDER BY dia_semana, abertura`,
+        [id]
+      ),
+    ]);
+
+    return res.json({
+      ...resultado.rows[0],
+      categorias: categorias.rows.map((categoria) => categoria.nome),
+      fotos: fotos.rows,
+      horarios: horarios.rows,
+      ...calcularFuncionamento(horarios.rows),
+    });
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao buscar empresa.' });

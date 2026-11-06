@@ -38,13 +38,57 @@ components:
         verificado_em: { type: string, format: date-time, nullable: true }
         motivo_rejeicao: { type: string, nullable: true }
         data_cadastro: { type: string, format: date-time }
+    EmpresaDetalhe:
+      description: Empresa com endereço, categorias, fotos, horários e situação de funcionamento
+      allOf:
+        - $ref: '#/components/schemas/Empresa'
+        - type: object
+          properties:
+            endereco: { type: string, nullable: true, example: "Rua Júlio de Castilhos, 2000" }
+            bairro: { type: string, nullable: true, example: Centro }
+            latitude: { type: string, nullable: true, example: "-29.6505000" }
+            longitude: { type: string, nullable: true, example: "-50.7810000" }
+            categorias:
+              type: array
+              items: { type: string }
+              example: [Alimentação]
+            fotos:
+              type: array
+              items:
+                type: object
+                properties:
+                  id_foto: { type: integer, example: 1 }
+                  url: { type: string, example: https://picsum.photos/600/400 }
+                  ordem: { type: integer, example: 0 }
+            horarios:
+              type: array
+              items:
+                type: object
+                properties:
+                  id_horario: { type: integer, example: 1 }
+                  empresa_id: { type: integer, example: 1 }
+                  dia_semana: { type: integer, minimum: 0, maximum: 6, example: 1 }
+                  abertura: { type: string, nullable: true, example: "07:00:00" }
+                  fechamento: { type: string, nullable: true, example: "19:00:00" }
+                  fechado: { type: boolean, example: false }
+                  data_fim: { type: string, format: date, nullable: true }
+                  status: { type: string, enum: [normal, feriado, fechado_temporario] }
+            aberto_agora: { type: boolean, example: false }
+            proxima_abertura:
+              type: object
+              nullable: true
+              description: Vazio se a empresa está aberta ou não abre nos próximos 30 dias
+              properties:
+                data: { type: string, format: date, example: "2026-11-06" }
+                dia_semana: { type: integer, example: 5 }
+                hora: { type: string, example: "07:00" }
 
 paths:
   /empresas:
     get:
       tags: [empresas]
       summary: Lista as empresas aprovadas (pública)
-      description: Só aparecem empresas com status `aprovada`. A busca procura no nome (sem diferenciar maiúsculas).
+      description: Só aparecem empresas com status `aprovada`. A busca procura no nome da empresa, nas categorias e nos produtos disponíveis, sem diferenciar maiúsculas ou acentos e tolerando erro de digitação. Os resultados mais parecidos vêm primeiro.
       parameters:
         - in: query
           name: categoria
@@ -54,7 +98,7 @@ paths:
         - in: query
           name: busca
           schema: { type: string }
-          description: Parte do nome da empresa
+          description: Texto procurado no nome da empresa, nas categorias e nos produtos
           example: padaria
       responses:
         '200':
@@ -111,10 +155,10 @@ paths:
         - $ref: '#/components/parameters/IdEmpresa'
       responses:
         '200':
-          description: Dados da empresa com o endereço
+          description: Dados completos da empresa
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Empresa' }
+              schema: { $ref: '#/components/schemas/EmpresaDetalhe' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
     patch:
