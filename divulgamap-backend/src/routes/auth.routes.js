@@ -5,14 +5,20 @@ const pool = require('../config/db');
 
 const router = express.Router();
 
+// E-mail em minúsculas e sem espaços nas pontas
+function normalizarEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : email;
+}
+
 // ROTA DE CADASTRO
 router.post('/cadastro', async (req, res) => {
   try {
-    const { nome, email, senha } = req.body;
+    const { nome, senha } = req.body;
+    const email = normalizarEmail(req.body.email);
 
     // 1. Verifica se já existe um usuário com esse e-mail
     const usuarioExistente = await pool.query(
-      'SELECT * FROM usuarios WHERE email = $1',
+      'SELECT * FROM usuarios WHERE LOWER(email) = $1',
       [email]
     );
 
@@ -39,11 +45,12 @@ router.post('/cadastro', async (req, res) => {
 // ROTA DE LOGIN
 router.post('/login', async (req, res) => {
   try {
-    const { email, senha } = req.body;
+    const { senha } = req.body;
+    const email = normalizarEmail(req.body.email);
 
     // 1. Busca o usuário pelo e-mail
     const resultado = await pool.query(
-      'SELECT * FROM usuarios WHERE email = $1',
+      'SELECT * FROM usuarios WHERE LOWER(email) = $1',
       [email]
     );
     const usuario = resultado.rows[0];

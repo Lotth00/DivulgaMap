@@ -40,7 +40,7 @@ paths:
     post:
       tags: [auth]
       summary: Faz login e devolve o token (válido por 7 dias)
-      description: Copie o valor de `token` (sem as aspas) e cole em **Authorize**. O e-mail diferencia maiúsculas.
+      description: Copie o valor de `token` (sem as aspas) e cole em **Authorize**. O e-mail não diferencia maiúsculas.
       requestBody:
         required: true
         content:
