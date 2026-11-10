@@ -36,6 +36,62 @@ paths:
                 items: { $ref: '#/components/schemas/Promocao' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
+  /promocoes/ativas:
+    get:
+      tags: [promocoes]
+      summary: Ofertas em vigor agora, de empresas aprovadas (pública)
+      description: |
+        As datas das promoções são lidas no horário de Brasília.
+        Com `lat` e `lng`, cada item traz `distancia_km` e a lista vai da mais próxima para a mais distante;
+        sem eles, da que termina primeiro.
+        Para a imagem do card: `foto_produto`; sem ela, a imagem padrão da `categoria`; sem produto, `foto_empresa`.
+      parameters:
+        - in: query
+          name: tipo
+          schema: { type: string, enum: [normal, especial, relampago] }
+        - in: query
+          name: lat
+          schema: { type: number }
+          example: -29.65
+        - in: query
+          name: lng
+          schema: { type: number }
+          example: -50.78
+        - in: query
+          name: limite
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Lista de ofertas (pode ser vazia)
+          content:
+            application/json:
+              example:
+                - id: 1
+                  tipo: normal
+                  titulo: Pão com desconto
+                  descricao: null
+                  condicao: null
+                  desconto_percentual: "20.00"
+                  data_fim: "2026-12-31T23:59:00"
+                  empresa_id: 1
+                  empresa_nome: Padaria São João
+                  produto_id: 1
+                  produto_nome: Pão francês
+                  tipo_item: produto
+                  preco_original: "1.50"
+                  preco_promocional: "1.20"
+                  foto_produto: null
+                  foto_empresa: null
+                  categoria: Alimentação
+                  distancia_km: 0.42
+        '400':
+          description: Tipo, coordenadas ou limite inválidos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: 'Tipo inválido. Use "normal", "especial" ou "relampago".' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /promocoes/relampago/ativas:
     get:
       tags: [promocoes]

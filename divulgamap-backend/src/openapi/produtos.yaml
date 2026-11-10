@@ -38,6 +38,7 @@ paths:
                 descricao: { type: string }
                 preco: { type: number }
                 unidade_medida: { type: string, default: un }
+                foto_url: { type: string, nullable: true, description: URL da foto do produto }
             example:
               empresa_id: 1
               nome: Pão francês

@@ -27,13 +27,13 @@ router.get('/empresa/:empresaId', async (req, res) => {
 // CRIAR um novo produto/serviço manualmente (protegida)
 router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
-    const { tipo_item, nome, categoria_id, descricao, preco, unidade_medida } = req.body;
+    const { tipo_item, nome, categoria_id, descricao, preco, unidade_medida, foto_url } = req.body;
     const empresa_id = req.empresa.id_empresa;
 
     const novoProduto = await pool.query(
-      `INSERT INTO produtos (empresa_id, tipo_item, nome, categoria_id, descricao, preco, unidade_medida)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [empresa_id, tipo_item || 'produto', nome, categoria_id || null, descricao, preco, unidade_medida || 'un']
+      `INSERT INTO produtos (empresa_id, tipo_item, nome, categoria_id, descricao, preco, unidade_medida, foto_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [empresa_id, tipo_item || 'produto', nome, categoria_id || null, descricao, preco, unidade_medida || 'un', foto_url || null]
     );
 
     return res.status(201).json(novoProduto.rows[0]);
