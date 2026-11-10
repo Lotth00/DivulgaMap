@@ -1113,3 +1113,9 @@ ALTER TABLE ONLY public.solicitacoes_empresa
 
 \unrestrict 0vxEQciVLUtiQhmoVMQhETxNVIYlvc0Ti001FeRXyptzJ000DJgtkm9adsAuzNI
 
+
+--
+-- Foto do produto (M7)
+--
+
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS foto_url character varying(500);
