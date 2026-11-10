@@ -41,7 +41,18 @@ components:
     EmpresaDetalhe:
       description: Empresa com endereço, categorias, fotos, horários e situação de funcionamento
       allOf:
-        - $ref: '#/components/schemas/Empresa'
+        - type: object
+          properties:
+            id_empresa: { type: integer, example: 1 }
+            nome_fantasia: { type: string, example: Padaria São João }
+            tipo: { type: string, enum: [comercio, servico, ambos] }
+            descricao: { type: string, nullable: true }
+            telefone: { type: string, nullable: true }
+            site: { type: string, nullable: true }
+            google_maps_url: { type: string, nullable: true }
+            nota_media: { type: string, example: "0.00" }
+            total_avaliacoes: { type: integer, example: 0 }
+            data_cadastro: { type: string, format: date-time }
         - type: object
           properties:
             endereco: { type: string, nullable: true, example: "Rua Júlio de Castilhos, 2000" }
@@ -430,7 +441,7 @@ paths:
     post:
       tags: [empresas]
       summary: Envia a empresa para aprovação (wizard, passo 13)
-      description: Só o dono. Exige verificação feita, endereço, nome, tipo e telefone.
+      description: Só o dono. Só rascunho ou rejeitada. Exige verificação feita, endereço, nome, tipo e telefone.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdEmpresa'
@@ -441,7 +452,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Empresa' }
         '400':
-          description: Falta verificação, endereço ou campo obrigatório
+          description: Empresa já enviada ou aprovada, ou falta verificação, endereço ou campo obrigatório
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
@@ -454,7 +465,7 @@ paths:
   /empresas/{id}/aprovar:
     patch:
       tags: [empresas]
-      summary: Aprova uma empresa (só admin)
+      summary: Aprova uma empresa esperando aprovação (só admin)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdEmpresa'
@@ -464,14 +475,20 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Empresa' }
+        '400':
+          description: A empresa não está esperando aprovação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /empresas/{id}/rejeitar:
     patch:
       tags: [empresas]
-      summary: Rejeita uma empresa com um motivo (só admin)
+      summary: Rejeita uma empresa esperando aprovação ou aprovada, com um motivo (só admin)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdEmpresa'
@@ -491,8 +508,14 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Empresa' }
+        '400':
+          description: A empresa é um rascunho ou já está rejeitada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /empresas/solicitacoes/pendentes:

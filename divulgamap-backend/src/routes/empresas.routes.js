@@ -229,7 +229,9 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const resultado = await pool.query(
-      `SELECT e.*, en.endereco, en.bairro, en.latitude, en.longitude
+      `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site,
+              e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro,
+              en.endereco, en.bairro, en.latitude, en.longitude
        FROM empresas e
        LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
        WHERE e.id_empresa = $1 AND e.status = 'aprovada'`,
@@ -608,6 +610,10 @@ router.post('/:id/submeter', verificarToken, verificarDonoEmpresa, async (req, r
     const { id } = req.params;
     const dadosEmpresa = req.empresa;
 
+    // Só rascunho ou rejeitada podem ir para aprovação
+    if (!['rascunho', 'rejeitada'].includes(dadosEmpresa.status)) {
+      return res.status(400).json({ erro: 'Esta empresa já foi enviada para aprovação ou já está aprovada.' });
+    }
     if (!dadosEmpresa.verificado_em) {
       return res.status(400).json({ erro: 'Complete a verificação (SMS/e-mail) antes de enviar.' });
     }
@@ -646,14 +652,30 @@ router.post('/:id/submeter', verificarToken, verificarDonoEmpresa, async (req, r
   }
 });
 
-// Lista tudo que está esperando aprovação
+// Resposta quando a mudança de status não se aplica: 404 se a empresa não existe, 400 se o status não permite
+async function responderStatusInvalido(res, id, mensagem) {
+  const existe = await pool.query('SELECT 1 FROM empresas WHERE id_empresa = $1', [id]);
+  if (!existe.rows[0]) {
+    return res.status(404).json({ erro: 'Empresa não encontrada.' });
+  }
+  return res.status(400).json({ erro: mensagem });
+}
+
+// Aprovação: só empresas esperando aprovação
 router.patch('/:id/aprovar', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
     const atualizada = await pool.query(
-      `UPDATE empresas SET status = 'aprovada' WHERE id_empresa = $1 RETURNING *`,
+      `UPDATE empresas SET status = 'aprovada', motivo_rejeicao = NULL
+       WHERE id_empresa = $1 AND status = 'pendente_aprovacao' RETURNING *`,
       [id]
     );
+    if (!atualizada.rows[0]) {
+      return responderStatusInvalido(res, id, 'Só empresas esperando aprovação podem ser aprovadas.');
+    }
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);
@@ -661,14 +683,22 @@ router.patch('/:id/aprovar', verificarToken, verificarAdmin, async (req, res) =>
   }
 });
 
+// Rejeição: empresas esperando aprovação ou já aprovadas
 router.patch('/:id/rejeitar', verificarToken, verificarAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { motivo } = req.body;
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
+    const { motivo } = req.body ?? {};
     const atualizada = await pool.query(
-      `UPDATE empresas SET status = 'rejeitada', motivo_rejeicao = $1 WHERE id_empresa = $2 RETURNING *`,
+      `UPDATE empresas SET status = 'rejeitada', motivo_rejeicao = $1
+       WHERE id_empresa = $2 AND status IN ('pendente_aprovacao', 'aprovada') RETURNING *`,
       [motivo, id]
     );
+    if (!atualizada.rows[0]) {
+      return responderStatusInvalido(res, id, 'Só empresas esperando aprovação ou aprovadas podem ser rejeitadas.');
+    }
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);

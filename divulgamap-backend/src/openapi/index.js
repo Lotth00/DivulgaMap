@@ -42,12 +42,12 @@ const documento = {
         content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' } } },
       },
       SemToken: {
-        description: 'Sem token (faça login e use o Authorize)',
+        description: 'Sem token, ou token inválido ou expirado (faça login e use o Authorize)',
         content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' }, example: { erro: 'Token não fornecido.' } } },
       },
       Proibido: {
-        description: 'Token inválido ou expirado, ou sem permissão para esta ação',
-        content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' }, example: { erro: 'Token inválido ou expirado.' } } },
+        description: 'Sem permissão para esta ação',
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' }, example: { erro: 'Você não pode alterar esta empresa.' } } },
       },
       NaoEncontrado: {
         description: 'Não encontrado',
