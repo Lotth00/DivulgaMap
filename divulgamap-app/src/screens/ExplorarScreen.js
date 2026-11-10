@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import api from '../services/api';
 import TelaMapaBase from '../components/TelaMapaBase';
@@ -9,21 +9,33 @@ export default function ExplorarScreen() {
   const [empresas, setEmpresas] = useState([]);
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [falhou, setFalhou] = useState(false);
+  const ultimaBusca = useRef(0);
 
+  // Espera a pessoa parar de digitar antes de buscar
   useEffect(() => {
-    buscarEmpresas();
+    const espera = setTimeout(buscarEmpresas, busca ? 400 : 0);
+    return () => clearTimeout(espera);
   }, [busca, categoriaSelecionada]);
 
   async function buscarEmpresas() {
+    const numeroDaBusca = ++ultimaBusca.current;
+    setCarregando(true);
+    setFalhou(false);
     try {
       const parametros = {};
-      if (busca) parametros.busca = busca;
+      if (busca.trim()) parametros.busca = busca.trim();
       if (categoriaSelecionada) parametros.categoria = categoriaSelecionada;
 
       const resposta = await api.get('/empresas', { params: parametros });
-      setEmpresas(resposta.data);
+      // Resposta de uma busca antiga é descartada
+      if (numeroDaBusca === ultimaBusca.current) setEmpresas(resposta.data);
     } catch (erro) {
       console.error('Erro ao buscar empresas', erro);
+      if (numeroDaBusca === ultimaBusca.current) setFalhou(true);
+    } finally {
+      if (numeroDaBusca === ultimaBusca.current) setCarregando(false);
     }
   }
 
@@ -49,7 +61,11 @@ export default function ExplorarScreen() {
       >
         <Text style={styles.titulo}>Empresas por perto</Text>
 
-        {empresas.length === 0 ? (
+        {carregando && empresas.length === 0 ? (
+          <ActivityIndicator color={colors.pretoTexto} />
+        ) : falhou ? (
+          <Text style={styles.textoVazio}>Não foi possível carregar as empresas. Confira sua conexão.</Text>
+        ) : empresas.length === 0 ? (
           <Text style={styles.textoVazio}>Nenhuma empresa encontrada por aqui ainda.</Text>
         ) : (
           <FlatList

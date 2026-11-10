@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { definirAoExpirarSessao } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -25,6 +26,12 @@ export function AuthProvider({ children }) {
     await AsyncStorage.multiRemove(['@divulgamap:token', '@divulgamap:usuario']);
     setUsuario(null);
   }
+
+  // Sessão expirada: sai da conta
+  useEffect(() => {
+    definirAoExpirarSessao(() => sair());
+    return () => definirAoExpirarSessao(null);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ usuario, logado: !!usuario, carregandoSessao, entrar, sair }}>
