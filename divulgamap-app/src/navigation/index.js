@@ -11,6 +11,7 @@ import ExplorarScreen from '../screens/ExplorarScreen';
 import SalvosScreen from '../screens/SalvosScreen';
 import ContaScreen from '../screens/ContaScreen';
 import OfertaScreen from '../screens/OfertaScreen';
+import PesquisaScreen from '../screens/PesquisaScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -36,6 +37,7 @@ export default function Navigation() {
         <Stack.Screen name="Entrar" component={EntrarScreen} />
         <Stack.Screen name="CriarConta" component={CriarContaScreen} />
         <Stack.Screen name="Oferta" component={OfertaScreen} />
+        <Stack.Screen name="Pesquisa" component={PesquisaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -38,7 +38,6 @@ function Carrossel({ children }) {
 export default function ExplorarScreen({ navigation }) {
   const [empresas, setEmpresas] = useState([]);
   const [ofertas, setOfertas] = useState([]);
-  const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState(null);
   const [localizacao, setLocalizacao] = useState(null);
   const [abaPromocao, setAbaPromocao] = useState('especial');
@@ -49,11 +48,10 @@ export default function ExplorarScreen({ navigation }) {
   const ultimaBusca = useRef(0);
   const ultimaOferta = useRef(0);
 
-  // Espera a pessoa parar de digitar antes de buscar
+  // Empresas do mapa, filtradas pelo chip de categoria
   useEffect(() => {
-    const espera = setTimeout(buscarEmpresas, busca ? 400 : 0);
-    return () => clearTimeout(espera);
-  }, [busca, categoriaSelecionada]);
+    buscarEmpresas();
+  }, [categoriaSelecionada]);
 
   // Ofertas de novo quando a localização chega (para vir a distância)
   useEffect(() => {
@@ -66,7 +64,6 @@ export default function ExplorarScreen({ navigation }) {
     setFalhouEmpresas(false);
     try {
       const parametros = {};
-      if (busca.trim()) parametros.busca = busca.trim();
       if (categoriaSelecionada) parametros.categoria = categoriaSelecionada;
 
       const resposta = await api.get('/empresas', { params: parametros });
@@ -135,22 +132,6 @@ export default function ExplorarScreen({ navigation }) {
       })),
     [empresas]
   );
-
-  const buscando = busca.trim().length > 0;
-
-  function conteudoBusca() {
-    if (carregandoEmpresas && empresas.length === 0) return <Carregando />;
-    if (falhouEmpresas) return <ErroComTentarDeNovo onTentarDeNovo={buscarEmpresas} />;
-    if (empresas.length === 0) return <EstadoVazio icone="search-outline" mensagem={`Nada encontrado para "${busca.trim()}".`} />;
-    return (
-      <>
-        <TituloSecao titulo="Resultados" />
-        {empresas.map((empresa) => (
-          <CartaoEmpresa key={empresa.id_empresa} empresa={empresa} largura={null} onPress={abrirEmpresa} />
-        ))}
-      </>
-    );
-  }
 
   function conteudoInicio() {
     const carregando = (carregandoOfertas && ofertas.length === 0) || (carregandoEmpresas && empresas.length === 0);
@@ -228,15 +209,13 @@ export default function ExplorarScreen({ navigation }) {
     <View style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <TelaMapaBase
-        busca={busca}
-        onMudarBusca={setBusca}
         categoriaSelecionada={categoriaSelecionada}
         onMudarCategoria={setCategoriaSelecionada}
         pontos={pontos}
         onTocarPonto={abrirEmpresa}
         onMudarLocalizacao={setLocalizacao}
       >
-        {buscando ? conteudoBusca() : conteudoInicio()}
+        {conteudoInicio()}
       </TelaMapaBase>
     </View>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -114,7 +115,6 @@ const HTML_MAPA = `
 
 // Mapa de Taquara com busca, chips de categoria e menu deslizante
 export default function TelaMapaBase({
-  busca, onMudarBusca,
   categoriaSelecionada, onMudarCategoria,
   pontos = [],
   onTocarPonto,
@@ -122,10 +122,12 @@ export default function TelaMapaBase({
   children,
 }) {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const bottomSheetRef = useRef(null);
   const webViewRef = useRef(null);
 
-  const snapPoints = useMemo(() => ['50%', '92%'], []);
+  // Recolhido (só a alça, para ver o mapa), meio e quase tela cheia
+  const snapPoints = useMemo(() => ['8%', '50%', '92%'], []);
   const [mapaPronto, setMapaPronto] = useState(false);
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
   const [categorias, setCategorias] = useState(CATEGORIAS_PADRAO);
@@ -203,17 +205,13 @@ export default function TelaMapaBase({
       />
 
       <View style={[styles.topo, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
-        <LinearGradient colors={[colors.gradienteTopo, colors.gradienteBase]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-          <Image source={require('../../assets/images/logo-pin.png')} style={styles.iconeLogo} resizeMode="contain" />
-          <TextInput
-            style={styles.inputBusca}
-            placeholder="O que você procura?"
-            placeholderTextColor={colors.cinzaPlaceholder}
-            value={busca}
-            onChangeText={onMudarBusca}
-          />
-          <Ionicons name="mic-outline" size={20} color={colors.pretoTexto} />
-        </LinearGradient>
+        <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Pesquisa')} accessibilityRole="search">
+          <LinearGradient colors={[colors.gradienteTopo, colors.gradienteBase]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <Image source={require('../../assets/images/logo-pin.png')} style={styles.iconeLogo} resizeMode="contain" />
+            <Text style={styles.inputBusca}>O que você procura?</Text>
+            <Ionicons name="mic-outline" size={20} color={colors.pretoTexto} />
+          </LinearGradient>
+        </TouchableOpacity>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtros}>
           {categorias.map((categoria) => (
@@ -231,8 +229,9 @@ export default function TelaMapaBase({
 
       <BottomSheet
         ref={bottomSheetRef}
-        index={0}
+        index={1}
         snapPoints={snapPoints}
+        enableDynamicSizing={false}
         handleIndicatorStyle={styles.alcaArrastar}
         backgroundStyle={styles.fundoFolha}
       >
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
   },
   iconeLogo: { width: 18, height: 20, marginRight: 8 },
-  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 15 },
+  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 15, color: colors.cinzaPlaceholder, paddingVertical: 4 },
   filtros: { paddingRight: 14 },
   chip: {
     backgroundColor: colors.brancoFundo, borderWidth: 1, borderColor: '#E0E0E0',
