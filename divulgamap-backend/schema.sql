@@ -1126,3 +1126,16 @@ ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS foto_url character varying(
 
 ALTER TABLE ONLY public.salvos
     ADD CONSTRAINT salvos_lista_item_key UNIQUE (lista_id, tipo_item, item_id);
+
+--
+-- Histórico com o tipo do item e o termo buscado (M9)
+--
+
+ALTER TABLE public.historico
+  ADD COLUMN tipo_item character varying(20),
+  ADD COLUMN termo character varying(100),
+  ADD CONSTRAINT historico_tipo_item_check CHECK (tipo_item IS NULL OR tipo_item IN ('empresa', 'produto', 'promocao')),
+  ADD CONSTRAINT historico_conteudo_check CHECK (
+    (tipo_acao = 'busca' AND termo IS NOT NULL) OR
+    (tipo_acao = 'visualizacao' AND tipo_item IS NOT NULL AND item_id IS NOT NULL));
+CREATE INDEX IF NOT EXISTS historico_usuario_data_idx ON public.historico (usuario_id, criado_em DESC);
