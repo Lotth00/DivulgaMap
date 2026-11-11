@@ -8,7 +8,7 @@ import CartaoHorario from './CartaoHorario';
 import BlocoContato from './BlocoContato';
 import CartaoAvaliacao from './CartaoAvaliacao';
 import colors from '../../theme/colors';
-import tipografia from '../../theme/tipografia';
+import tipografia, { fs } from '../../theme/tipografia';
 import { formatarNota } from './util';
 
 const ALTURA_GRADE = 220;
@@ -130,10 +130,10 @@ const styles = StyleSheet.create({
   carrossel: { marginHorizontal: -20 },
   conteudoCarrossel: { paddingHorizontal: 20, paddingVertical: 4 },
   cabecalhoAvaliacoes: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  tituloAvaliacoes: { ...tipografia.tituloTela, color: colors.pretoTexto },
+  tituloAvaliacoes: { ...tipografia.tituloTela, fontSize: fs(16), color: colors.pretoTexto },
   resumoNota: { flexDirection: 'row', alignItems: 'center' },
-  textoNota: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto, marginRight: 4 },
-  textoTotal: { ...tipografia.corpo, color: colors.textoSecundario, marginLeft: 4 },
+  textoNota: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto, marginRight: 4 },
+  textoTotal: { ...tipografia.corpoMedio, color: colors.textoSecundario, marginLeft: 4 },
   vazio: { ...tipografia.legenda, color: colors.textoSecundario },
   botaoAvaliar: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 12,

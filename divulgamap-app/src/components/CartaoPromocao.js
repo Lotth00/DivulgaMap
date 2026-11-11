@@ -2,7 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import ImagemItem from './ImagemItem';
 import colors from '../theme/colors';
-import tipografia from '../theme/tipografia';
+import tipografia, { fs } from '../theme/tipografia';
 
 // Destaque amarelo: "20% de desconto" ou a própria condição
 function textoDestaque(oferta) {
@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
   textos: { flex: 1, marginLeft: 10 },
-  empresa: { ...tipografia.corpo, fontSize: 17, color: colors.pretoTexto },
+  empresa: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
   apoio: { ...tipografia.legenda, color: colors.pretoTexto, marginTop: 2, marginBottom: 8, flexShrink: 1 },
   destaque: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginTop: 'auto', maxWidth: '100%' },
   textoDestaque: { ...tipografia.corpoMedio, color: colors.pretoTexto },

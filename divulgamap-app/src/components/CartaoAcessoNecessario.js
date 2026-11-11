@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 export default function CartaoAcessoNecessario({ mensagem, navigation }) {
   return (
@@ -31,9 +32,9 @@ export default function CartaoAcessoNecessario({ mensagem, navigation }) {
 
 const styles = StyleSheet.create({
   cartao: { borderRadius: 24, padding: 20, width: '100%', maxWidth: 364, alignSelf: 'center' },
-  mensagem: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: 15, textAlign: 'center', marginBottom: 16, color: colors.pretoTexto },
+  mensagem: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: fs(15), textAlign: 'center', marginBottom: 16, color: colors.pretoTexto },
   botao: { backgroundColor: colors.pretoTexto, paddingVertical: 13, borderRadius: 10, alignItems: 'center' },
-  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: 14, letterSpacing: 0.5 },
+  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: fs(14), letterSpacing: 0.5 },
   divisor: { flexDirection: 'row', alignItems: 'center', marginVertical: 10 },
   linha: { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
   textoOu: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, marginHorizontal: 10, color: colors.pretoTexto },

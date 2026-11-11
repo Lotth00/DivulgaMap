@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
 import { fontes } from '../theme/tipografia';
+import { fs } from '../theme/tipografia';
 
 // Banners de exemplo (substituídos pelos anúncios reais na M28)
 export const BANNERS_EXEMPLO = [
@@ -66,8 +67,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, overflow: 'hidden',
   },
   textos: { flex: 1, marginRight: 12 },
-  titulo: { fontFamily: fontes.destaque, includeFontPadding: false, fontSize: 30, color: colors.pretoTexto },
-  texto: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 14, color: colors.pretoTexto },
+  titulo: { fontFamily: fontes.destaque, includeFontPadding: false, fontSize: fs(30), color: colors.pretoTexto },
+  texto: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(14), color: colors.pretoTexto },
   bolinhas: { flexDirection: 'row', marginTop: 8 },
   bolinha: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.bordaClara, marginHorizontal: 4 },
   bolinhaAtual: { backgroundColor: colors.textoSecundario },

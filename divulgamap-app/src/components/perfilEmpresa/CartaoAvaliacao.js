@@ -3,7 +3,7 @@ import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Estrelas from '../Estrelas';
 import colors from '../../theme/colors';
-import tipografia from '../../theme/tipografia';
+import tipografia, { fs } from '../../theme/tipografia';
 import { tempoDesde } from './util';
 
 // Uma avaliação: pessoa, nota, data, comentário e fotos
@@ -37,10 +37,10 @@ const styles = StyleSheet.create({
   cartao: { backgroundColor: colors.cinzaInput, borderRadius: 20, padding: 16, marginBottom: 12, marginRight: 12 },
   pessoa: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.brancoFundo, alignItems: 'center', justifyContent: 'center' },
-  nome: { ...tipografia.corpo, color: colors.textoPrincipal, marginLeft: 10, flex: 1 },
+  nome: { ...tipografia.corpo, fontSize: fs(14), color: colors.textoPrincipal, marginLeft: 10, flex: 1 },
   linhaNota: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  data: { ...tipografia.pequeno, color: colors.textoSecundario, marginLeft: 8 },
-  comentario: { ...tipografia.corpoMedio, color: colors.textoPrincipal, marginTop: 6 },
+  data: { ...tipografia.pequeno, fontSize: fs(10), color: colors.textoSecundario, marginLeft: 8 },
+  comentario: { ...tipografia.corpoMedio, fontSize: fs(13), color: colors.textoPrincipal, marginTop: 6 },
   fotos: { marginTop: 10 },
   foto: { width: 72, height: 72, borderRadius: 8, marginRight: 8 },
 });

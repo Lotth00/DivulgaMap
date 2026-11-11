@@ -21,7 +21,7 @@ import ModalSalvar from '../components/ModalSalvar';
 import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
 import { linkWhatsapp, conversar } from '../components/perfilEmpresa/util';
 import colors from '../theme/colors';
-import tipografia from '../theme/tipografia';
+import tipografia, { fs } from '../theme/tipografia';
 
 const MOTIVOS_DENUNCIA = [
   { valor: 'informacoes_incorretas', rotulo: 'Informações incorretas' },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   abas: { alignItems: 'center' },
   toqueAba: { marginRight: 14 },
   aba: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  textoAba: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
+  textoAba: { ...tipografia.corpo, fontSize: fs(15), color: colors.pretoTexto },
   flutuante: {
     position: 'absolute', right: 20, borderRadius: 30,
     elevation: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },

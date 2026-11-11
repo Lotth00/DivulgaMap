@@ -2,7 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import ImagemItem from './ImagemItem';
 import colors from '../theme/colors';
-import tipografia, { fontes } from '../theme/tipografia';
+import tipografia, { fontes, fs } from '../theme/tipografia';
 
 // "5.5" → "R$5,50" (com "/Kg" quando a unidade não é "un")
 function formatarPreco(valor, unidade) {
@@ -61,11 +61,11 @@ const styles = StyleSheet.create({
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
   imagem: { alignSelf: 'center', backgroundColor: colors.brancoFundo },
-  empresa: { ...tipografia.corpoMedio, color: colors.pretoTexto, marginTop: 8 },
+  empresa: { ...tipografia.corpoMedio, fontSize: fs(14), color: colors.pretoTexto, marginTop: 8 },
   descricao: { ...tipografia.legenda, color: colors.textoSecundario },
   linhaPreco: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
-  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 18, color: colors.verdePreco, marginRight: 5, flexShrink: 1 },
+  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(18), color: colors.verdePreco, marginRight: 5, flexShrink: 1 },
   precoRiscado: { ...tipografia.legenda, color: colors.cinzaPlaceholder, textDecorationLine: 'line-through' },
   selo: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 2, marginTop: 4, maxWidth: '100%' },
-  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 13, color: colors.pretoTexto },
+  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(13), color: colors.pretoTexto },
 });

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 const ICONES = {
   Salvos: 'bookmark',
@@ -46,5 +47,5 @@ const styles = StyleSheet.create({
   aba: { flex: 1, alignItems: 'center', paddingVertical: 8, marginHorizontal: 8, borderRadius: 16 },
   abaAtiva: { backgroundColor: '#A4E344' },
   iconePin: { width: 20, height: 22, marginBottom: 2 },
-  rotulo: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: 12, marginTop: 4, color: colors.pretoTexto },
+  rotulo: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: fs(12), marginTop: 4, color: colors.pretoTexto },
 });

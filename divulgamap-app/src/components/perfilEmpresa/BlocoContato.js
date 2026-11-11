@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
-import tipografia from '../../theme/tipografia';
+import tipografia, { fs } from '../../theme/tipografia';
 import { ligar, abrirSite, abrirMapa, formatarTelefone } from './util';
 
 function Linha({ icone, texto, onPress, primeira, ultima }) {
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   primeira: { borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   ultima: { borderBottomLeftRadius: 20, borderBottomRightRadius: 20, marginBottom: 0 },
   icone: { marginRight: 16 },
-  texto: { ...tipografia.corpoMedio, color: colors.textoPrincipal, flex: 1 },
+  texto: { ...tipografia.corpoMedio, fontSize: fs(13), color: colors.textoPrincipal, flex: 1 },
   link: { textDecorationLine: 'none' },
   vazio: { ...tipografia.legenda, color: colors.textoSecundario },
 });

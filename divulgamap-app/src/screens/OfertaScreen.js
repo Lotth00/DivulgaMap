@@ -14,7 +14,7 @@ import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
 import ModalSalvar from '../components/ModalSalvar';
 import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
 import colors from '../theme/colors';
-import tipografia, { fontes } from '../theme/tipografia';
+import tipografia, { fontes, fs } from '../theme/tipografia';
 
 const ROTULO_TIPO = {
   normal: { texto: 'PROMOÇÃO', cor: colors.menuInicio },
@@ -286,11 +286,11 @@ const styles = StyleSheet.create({
   conteudo: { paddingHorizontal: 20, paddingBottom: 40 },
   linhaTopo: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   rotulo: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginRight: 10 },
-  textoRotulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 13, color: colors.pretoTexto },
+  textoRotulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(13), color: colors.pretoTexto },
   linkEmpresaTopo: { flex: 1 },
   salvar: { padding: 4, marginLeft: 8 },
   textoLinkEmpresa: { ...tipografia.legenda, color: colors.azulLink },
-  nome: { ...tipografia.tituloTela, fontSize: 22, color: colors.pretoTexto, marginTop: 8 },
+  nome: { ...tipografia.tituloTela, fontSize: fs(20), color: colors.pretoTexto, marginTop: 8 },
   subtitulo: { ...tipografia.legenda, color: colors.textoSecundario },
   imagem: { marginTop: 12, backgroundColor: colors.brancoFundo },
   aviso: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
@@ -299,9 +299,9 @@ const styles = StyleSheet.create({
   precoDe: { ...tipografia.corpoMedio, color: colors.textoSecundario },
   riscado: { textDecorationLine: 'line-through' },
   linhaPreco: { flexDirection: 'row', alignItems: 'center' },
-  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 30, color: colors.verdePreco, marginRight: 10 },
+  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(30), color: colors.verdePreco, marginRight: 10 },
   selo: { backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2 },
-  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 16, color: colors.pretoTexto },
+  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(16), color: colors.pretoTexto },
   destaque: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 4, marginTop: 12 },
   textoDestaque: { ...tipografia.corpo, color: colors.pretoTexto },
   secao: { marginTop: 24 },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
   dadosEmpresa: { flex: 1, marginLeft: 12 },
-  nomeEmpresa: { ...tipografia.corpo, fontSize: 17, color: colors.pretoTexto },
+  nomeEmpresa: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
   infoEmpresa: { ...tipografia.legenda, color: colors.textoSecundario },
   botao: { marginTop: 14 },
   botaoSecundario: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },

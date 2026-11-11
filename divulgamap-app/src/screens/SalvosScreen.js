@@ -14,7 +14,7 @@ import MenuOpcoes from '../components/MenuOpcoes';
 import ModalNomeLista from '../components/ModalNomeLista';
 import { NOME_FAVORITOS, ordenarListas, textoTotal, renomearLista, confirmarExclusaoLista } from '../components/listasSalvas';
 import colors from '../theme/colors';
-import tipografia from '../theme/tipografia';
+import tipografia, { fs } from '../theme/tipografia';
 
 // Aba Salvos: as listas da pessoa, com criar, renomear e excluir
 export default function SalvosScreen({ navigation }) {
@@ -159,17 +159,17 @@ export default function SalvosScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  titulo: { ...tipografia.tituloTela, fontSize: 24, color: colors.pretoTexto, marginTop: 8, marginBottom: 24 },
+  titulo: { ...tipografia.tituloTela, fontSize: fs(20), color: colors.pretoTexto, marginTop: 8, marginBottom: 24 },
   criar: { borderRadius: 24, paddingVertical: 11, alignItems: 'center' },
-  textoCriar: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
-  subtitulo: { ...tipografia.tituloTela, fontSize: 24, color: colors.pretoTexto, marginTop: 30, marginBottom: 12 },
+  textoCriar: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
+  subtitulo: { ...tipografia.tituloTela, fontSize: fs(20), color: colors.pretoTexto, marginTop: 30, marginBottom: 12 },
   linha: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12,
     borderBottomWidth: 1.5, borderBottomColor: colors.bordaClara,
   },
   icone: { width: 36, marginLeft: 4, marginRight: 14 },
   textos: { flex: 1 },
-  nome: { ...tipografia.corpo, fontSize: 20, color: colors.pretoTexto },
-  total: { ...tipografia.corpoMedio, color: colors.textoSecundario },
+  nome: { ...tipografia.corpo, fontSize: fs(18), color: colors.pretoTexto },
+  total: { ...tipografia.corpoMedio, fontSize: fs(14), color: colors.textoSecundario },
   botaoMenu: { padding: 8, marginRight: -8 },
 });

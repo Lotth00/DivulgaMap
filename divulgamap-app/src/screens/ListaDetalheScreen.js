@@ -13,7 +13,7 @@ import MenuOpcoes from '../components/MenuOpcoes';
 import ModalNomeLista from '../components/ModalNomeLista';
 import { NOME_FAVORITOS, textoTotal, renomearLista, confirmarExclusaoLista } from '../components/listasSalvas';
 import colors from '../theme/colors';
-import tipografia from '../theme/tipografia';
+import tipografia, { fs } from '../theme/tipografia';
 
 // Linha de apoio de cada tipo de item
 function subtitulo(item) {
@@ -166,12 +166,12 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: colors.fundoTela },
   conteudo: { paddingHorizontal: 20, paddingBottom: 40, flexGrow: 1 },
   topo: { marginBottom: 16 },
-  titulo: { ...tipografia.tituloTela, fontSize: 24, color: colors.pretoTexto },
+  titulo: { ...tipografia.tituloTela, fontSize: fs(20), color: colors.pretoTexto },
   total: { ...tipografia.corpoMedio, color: colors.textoSecundario },
   item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1.5, borderBottomColor: colors.bordaClara },
   textos: { flex: 1, marginLeft: 12 },
-  nome: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
-  apoio: { ...tipografia.legenda, fontSize: 14, color: colors.textoSecundario },
+  nome: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
+  apoio: { ...tipografia.legenda, fontSize: fs(14), color: colors.textoSecundario },
   encerrada: { ...tipografia.legenda, color: colors.vermelhoAviso },
   botaoMenu: { padding: 8, marginRight: -8 },
 });

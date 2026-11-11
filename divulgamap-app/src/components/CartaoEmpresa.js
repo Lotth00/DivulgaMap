@@ -2,7 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import ImagemItem from './ImagemItem';
 import colors from '../theme/colors';
-import tipografia, { fontes } from '../theme/tipografia';
+import tipografia, { fontes, fs } from '../theme/tipografia';
 
 // Cartão horizontal de empresa ("Novos negócios no app" e resultados da busca)
 export default function CartaoEmpresa({ empresa, onPress, largura = 300 }) {
@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
   textos: { flex: 1, marginLeft: 12 },
-  nome: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
+  nome: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
   descricao: { ...tipografia.legenda, color: colors.pretoTexto, marginTop: 2, marginBottom: 6, flexShrink: 1 },
-  saibaMais: { fontFamily: fontes.seminegrito, includeFontPadding: false, fontSize: 14, color: colors.pretoTexto, alignSelf: 'flex-end', marginTop: 'auto' },
+  saibaMais: { fontFamily: fontes.seminegrito, includeFontPadding: false, fontSize: fs(14), color: colors.pretoTexto, alignSelf: 'flex-end', marginTop: 'auto' },
 });

@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 export default function CriarContaScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -95,10 +96,10 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 32,
   },
-  titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: 26, textAlign: 'center', marginBottom: 24 },
+  titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: fs(26), textAlign: 'center', marginBottom: 24 },
   input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14 },
   botao: { backgroundColor: colors.pretoTexto, paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginTop: 8, marginBottom: 20 },
-  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: 15 },
+  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: fs(15) },
   linkCriar: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, textAlign: 'center' },
   linkAzul: { color: colors.azulLink, textDecorationLine: 'underline' },
 });

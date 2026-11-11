@@ -14,7 +14,7 @@ import Carregando from '../components/Carregando';
 import EstadoVazio from '../components/EstadoVazio';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
 import colors from '../theme/colors';
-import tipografia from '../theme/tipografia';
+import tipografia, { fs } from '../theme/tipografia';
 
 const RECENTES_INICIAIS = 3;
 const COR_ESTRELA = '#B5CC18';
@@ -434,15 +434,15 @@ const styles = StyleSheet.create({
   input: { flex: 1, ...tipografia.corpo, color: colors.pretoTexto, paddingVertical: 6 },
   faixaFiltro: { backgroundColor: colors.brancoFundo, paddingHorizontal: 20, paddingVertical: 6, alignItems: 'flex-end' },
   botaoFiltro: { flexDirection: 'row', alignItems: 'center' },
-  textoFiltro: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto, marginLeft: 6 },
+  textoFiltro: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto, marginLeft: 6 },
   conteudo: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
   item: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   iconeBusca: { width: 56, height: 56, borderRadius: 10, backgroundColor: colors.cinzaInput, alignItems: 'center', justifyContent: 'center' },
   textosItem: { flex: 1, marginLeft: 12, marginRight: 4 },
-  nomeItem: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
+  nomeItem: { ...tipografia.corpo, fontSize: fs(16), color: colors.pretoTexto },
   secao: { marginBottom: 10 },
-  extraItem: { ...tipografia.legenda, fontSize: 14, color: colors.verdePreco },
-  apoioItem: { ...tipografia.legenda, fontSize: 14, color: colors.textoSecundario },
+  extraItem: { ...tipografia.legenda, fontSize: fs(14), color: colors.verdePreco },
+  apoioItem: { ...tipografia.legenda, fontSize: fs(14), color: colors.textoSecundario },
   encerrada: { color: colors.vermelhoAviso },
   botaoIcone: { padding: 6 },
   fundoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 18, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8, marginBottom: 8,
   },
   chipAtivo: { backgroundColor: colors.gradienteBase, borderColor: colors.gradienteBase },
-  textoChip: { ...tipografia.legenda, fontSize: 14, color: colors.pretoTexto },
+  textoChip: { ...tipografia.legenda, fontSize: fs(14), color: colors.pretoTexto },
   linhaBotoes: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   limpar: { paddingVertical: 10, paddingHorizontal: 16 },
   textoLimpar: { ...tipografia.botao, color: colors.textoSecundario },

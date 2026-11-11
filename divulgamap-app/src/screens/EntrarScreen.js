@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 export default function EntrarScreen({ navigation }) {
   const { entrar } = useAuth();
@@ -115,16 +116,16 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingTop: 32,
   },
-  titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: 26, textAlign: 'center', marginBottom: 24 },
+  titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: fs(26), textAlign: 'center', marginBottom: 24 },
   input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14 },
   linkEsqueceu: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, color: colors.azulLink, textDecorationLine: 'underline', marginBottom: 20 },
   botao: { backgroundColor: colors.pretoTexto, paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginBottom: 20 },
-  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: 15 },
+  textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: fs(15) },
   divisor: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   linha: { flex: 1, height: 1, backgroundColor: '#C9C9C9' },
   textoOu: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, marginHorizontal: 10, color: '#8A8A8A' },
   botaoGoogle: { backgroundColor: colors.cinzaBotaoGoogle, paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginBottom: 20 },
-  textoBotaoGoogle: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, fontSize: 14 },
+  textoBotaoGoogle: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, fontSize: fs(14) },
   linkCriar: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, textAlign: 'center' },
   linkAzul: { color: colors.azulLink, textDecorationLine: 'underline' },
 });

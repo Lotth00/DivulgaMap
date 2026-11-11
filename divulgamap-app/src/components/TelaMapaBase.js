@@ -9,6 +9,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 // Categorias usadas se GET /categorias falhar
 const CATEGORIAS_PADRAO = ['Alimentação', 'Bem-Estar', 'Construção', 'Moda', 'Serviços Gerais', 'Tecnologia'];
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
   },
   iconeLogo: { width: 18, height: 20, marginRight: 8 },
-  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', includeFontPadding: false, fontSize: 15, color: colors.cinzaPlaceholder, paddingVertical: 4 },
+  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', includeFontPadding: false, fontSize: fs(16), color: colors.cinzaPlaceholder, paddingVertical: 4 },
   filtros: { paddingRight: 14 },
   chip: {
     backgroundColor: colors.brancoFundo, borderWidth: 1, borderColor: '#E0E0E0',
@@ -260,7 +261,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, elevation: 1,
   },
   chipSelecionado: { backgroundColor: colors.gradienteBase, borderColor: colors.gradienteBase },
-  textoChip: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: 13 },
+  textoChip: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: fs(14) },
   alcaArrastar: { backgroundColor: colors.pretoTexto, width: 64, height: 4 },
   fundoFolha: { backgroundColor: colors.fundoTela, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   folhaConteudo: { paddingHorizontal: 20, paddingBottom: 40 },

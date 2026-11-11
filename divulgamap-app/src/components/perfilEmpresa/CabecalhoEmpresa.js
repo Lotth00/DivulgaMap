@@ -5,7 +5,7 @@ import CaixaGradiente from '../CaixaGradiente';
 import ImagemItem from '../ImagemItem';
 import Estrelas from '../Estrelas';
 import colors from '../../theme/colors';
-import tipografia from '../../theme/tipografia';
+import tipografia, { fs } from '../../theme/tipografia';
 import { formatarNota } from './util';
 
 // Cartão do topo: foto, nome, categoria, nota, descrição e o marcador de salvar
@@ -52,11 +52,11 @@ const styles = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center' },
   textos: { flex: 1, marginLeft: 14 },
   salvar: { alignSelf: 'flex-start', padding: 4, marginRight: -6, marginTop: -4 },
-  nome: { ...tipografia.tituloTela, fontSize: 22, color: colors.pretoTexto },
+  nome: { ...tipografia.tituloTela, fontSize: fs(18), color: colors.pretoTexto },
   categoria: { ...tipografia.corpoMedio, color: colors.textoSecundario },
   linhaNota: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   nota: { ...tipografia.corpoMedio, color: colors.textoSecundario, marginHorizontal: 4 },
   semNota: { ...tipografia.legenda, color: colors.textoSecundario, marginTop: 2 },
   divisoria: { height: 1.5, backgroundColor: colors.divisoriaCartao, marginVertical: 10 },
-  descricao: { ...tipografia.corpo, color: colors.pretoTexto },
+  descricao: { ...tipografia.corpoMedio, color: colors.pretoTexto },
 });

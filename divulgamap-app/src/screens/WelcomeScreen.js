@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, ImageBackg
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import colors from '../theme/colors';
+import { fs } from '../theme/tipografia';
 
 export default function WelcomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   },
   tituloKoulen: {
     fontFamily: 'Koulen_400Regular', includeFontPadding: false,
-    fontSize: 30,
+    fontSize: fs(30),
     color: colors.pretoTexto,
     textAlign: 'center',
   },
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   },
   subtitulo: {
     fontFamily: 'Poppins_400Regular', includeFontPadding: false,
-    fontSize: 16,
+    fontSize: fs(16),
     textAlign: 'center',
     color: colors.pretoTexto,
     marginBottom: 32,
@@ -106,6 +107,6 @@ const styles = StyleSheet.create({
   textoBotao: {
     fontFamily: 'Poppins_600SemiBold', includeFontPadding: false,
     color: colors.brancoFundo,
-    fontSize: 16,
+    fontSize: fs(16),
   },
 });

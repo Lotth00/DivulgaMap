@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../theme/colors';
-import tipografia, { fontes } from '../../theme/tipografia';
+import tipografia, { fontes, fs } from '../../theme/tipografia';
 import { NOMES_DIAS, intervalosDoDia, situacaoAgora, excecaoEmVigor } from './util';
 
 const TEXTO_EXCECAO = { feriado: 'Feriado', fechado_temporario: 'Fechado temporariamente' };
@@ -73,8 +73,8 @@ const styles = StyleSheet.create({
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
   },
   topo: { flexDirection: 'row', alignItems: 'center' },
-  titulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 17, color: colors.textoTitulo },
-  situacao: { ...tipografia.corpo, color: colors.textoSecundario, marginTop: 2 },
+  titulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(15), color: colors.textoTitulo },
+  situacao: { ...tipografia.corpoMedio, color: colors.textoSecundario, marginTop: 2 },
   aberto: { color: colors.verdePreco },
   fechado: { color: colors.vermelhoFechado },
   seta: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.fundoTela, alignItems: 'center', justifyContent: 'center' },

@@ -4,7 +4,7 @@ import ImagemItem from '../ImagemItem';
 import TituloSecao from '../TituloSecao';
 import EstadoVazio from '../EstadoVazio';
 import colors from '../../theme/colors';
-import tipografia, { fontes } from '../../theme/tipografia';
+import tipografia, { fontes, fs } from '../../theme/tipografia';
 import { formatarPreco } from './util';
 
 // Produtos agrupados pela categoria (sem categoria vão para "Outros")
@@ -80,12 +80,12 @@ const styles = StyleSheet.create({
   item: { flexDirection: 'row', paddingVertical: 8, borderRadius: 12 },
   itemDestaque: { backgroundColor: colors.padraoFim, paddingHorizontal: 8, marginHorizontal: -8 },
   textos: { flex: 1, marginLeft: 12 },
-  nome: { ...tipografia.corpo, color: colors.pretoTexto },
+  nome: { ...tipografia.corpoMedio, color: colors.pretoTexto },
   descricao: { ...tipografia.legenda, color: colors.textoSecundario },
   linhaPreco: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
-  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 16, color: colors.verdePreco, marginRight: 6 },
+  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(16), color: colors.verdePreco, marginRight: 6 },
   riscado: { ...tipografia.legenda, color: colors.cinzaPlaceholder, textDecorationLine: 'line-through' },
-  precoNormal: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 16, color: colors.pretoTexto, marginTop: 2 },
+  precoNormal: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(16), color: colors.pretoTexto, marginTop: 2 },
   selo: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 1, marginTop: 4 },
-  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 12, color: colors.pretoTexto },
+  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(12), color: colors.pretoTexto },
 });

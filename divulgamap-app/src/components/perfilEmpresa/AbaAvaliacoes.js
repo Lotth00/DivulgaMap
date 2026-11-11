@@ -5,7 +5,7 @@ import Estrelas from '../Estrelas';
 import EstadoVazio from '../EstadoVazio';
 import CartaoAvaliacao from './CartaoAvaliacao';
 import colors from '../../theme/colors';
-import tipografia from '../../theme/tipografia';
+import tipografia, { fs } from '../../theme/tipografia';
 import { formatarNota } from './util';
 
 // Aba de avaliações: resumo com barras por nota e a lista completa
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   trilho: { flex: 1, height: 8, borderRadius: 4, backgroundColor: colors.cinzaInput, overflow: 'hidden' },
   preenchido: { height: 8, borderRadius: 4, backgroundColor: colors.estrela },
   media: { alignItems: 'center', marginLeft: 20 },
-  notaGrande: { ...tipografia.tituloTela, fontSize: 40, color: colors.pretoTexto },
+  notaGrande: { ...tipografia.tituloTela, fontSize: fs(40), color: colors.pretoTexto },
   total: { ...tipografia.legenda, color: colors.textoSecundario, marginTop: 2 },
   botaoAvaliar: {
     flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 16,

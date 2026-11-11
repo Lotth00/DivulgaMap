@@ -14,6 +14,11 @@ import OfertaScreen from '../screens/OfertaScreen';
 import PesquisaScreen from '../screens/PesquisaScreen';
 import PerfilEmpresaScreen from '../screens/PerfilEmpresaScreen';
 import ListaDetalheScreen from '../screens/ListaDetalheScreen';
+import GerenciarContaScreen from '../screens/conta/GerenciarContaScreen';
+import DadosPessoaisScreen from '../screens/conta/DadosPessoaisScreen';
+import ContatosScreen from '../screens/conta/ContatosScreen';
+import DataNascimentoScreen from '../screens/conta/DataNascimentoScreen';
+import ExcluirContaScreen from '../screens/conta/ExcluirContaScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -42,6 +47,11 @@ export default function Navigation() {
         <Stack.Screen name="Pesquisa" component={PesquisaScreen} />
         <Stack.Screen name="Empresa" component={PerfilEmpresaScreen} />
         <Stack.Screen name="ListaDetalhe" component={ListaDetalheScreen} />
+        <Stack.Screen name="GerenciarConta" component={GerenciarContaScreen} />
+        <Stack.Screen name="DadosPessoais" component={DadosPessoaisScreen} />
+        <Stack.Screen name="Contatos" component={ContatosScreen} />
+        <Stack.Screen name="DataNascimento" component={DataNascimentoScreen} />
+        <Stack.Screen name="ExcluirConta" component={ExcluirContaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
