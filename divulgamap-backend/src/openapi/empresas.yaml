@@ -174,11 +174,12 @@ paths:
         '500': { $ref: '#/components/responses/ErroServidor' }
     patch:
       tags: [empresas]
-      summary: Atualiza o rascunho, um pedaço por vez (wizard, passos 2, 3, 5, 8 e 9)
+      summary: Atualiza o rascunho, um pedaço por vez (cadastro de empresa)
       description: |
-        Só o dono. Só os campos enviados mudam.
-        Ao enviar `endereco` ou `bairro`, o endereço é localizado no mapa pelo OpenStreetMap;
-        se não for encontrado, a resposta é 400.
+        Só o dono. Só os campos enviados mudam. Em `telefone`, `site`, `google_maps_url` e `referencia`,
+        texto vazio apaga o valor. `categorias` substitui as categorias atuais.
+        Ao mudar `endereco` ou `bairro`, o endereço é procurado em Taquara pelo OpenStreetMap
+        (completo, sem o bairro e só a rua); se não for encontrado, a resposta é 400.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdEmpresa'
@@ -189,9 +190,12 @@ paths:
             schema:
               type: object
               properties:
+                nome_fantasia: { type: string, maxLength: 150 }
+                categorias: { type: array, items: { type: string }, example: [Alimentação] }
                 tipo: { type: string, enum: [comercio, servico, ambos] }
                 endereco: { type: string }
                 bairro: { type: string }
+                referencia: { type: string, maxLength: 150, description: Ponto de referência (opcional) }
                 telefone: { type: string }
                 site: { type: string }
                 google_maps_url: { type: string }
@@ -222,6 +226,29 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
               example: { erro: Não conseguimos localizar esse endereço no mapa. Confira o endereço e o bairro. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+    delete:
+      tags: [empresas]
+      summary: Apaga um rascunho do próprio usuário
+      description: Só o dono, e só enquanto a empresa é rascunho (enviadas e aprovadas não podem ser apagadas por aqui).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      responses:
+        '200':
+          description: Rascunho apagado
+          content:
+            application/json:
+              example: { mensagem: Rascunho apagado. }
+        '400':
+          description: A empresa não é rascunho
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }

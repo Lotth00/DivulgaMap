@@ -193,7 +193,10 @@ router.get('/', async (req, res) => {
 router.get('/rascunho-atual', verificarToken, async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT e.*, en.endereco, en.bairro, en.latitude, en.longitude
+      `SELECT e.*, en.endereco, en.bairro, en.referencia, en.latitude, en.longitude,
+              COALESCE((SELECT json_agg(c.nome ORDER BY c.nome)
+                        FROM empresa_categoria ec JOIN categorias c ON c.id_categoria = ec.categoria_id
+                        WHERE ec.empresa_id = e.id_empresa), '[]') AS categorias
        FROM empresas e
        LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
        WHERE e.id_usuario = $1 AND e.status = 'rascunho'
@@ -231,7 +234,7 @@ router.get('/:id', async (req, res) => {
     const resultado = await pool.query(
       `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site,
               e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro,
-              en.endereco, en.bairro, en.latitude, en.longitude
+              en.endereco, en.bairro, en.referencia, en.latitude, en.longitude
        FROM empresas e
        LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
        WHERE e.id_empresa = $1 AND e.status = 'aprovada'`,
@@ -274,114 +277,199 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// PASSO 1: cria o rascunho com nome + categoria
+const TIPOS_EMPRESA = ['comercio', 'servico', 'ambos'];
+
+// Nome da empresa limpo, ou null se inválido
+function validarNomeEmpresa(nome) {
+  if (typeof nome !== 'string') return null;
+  const limpo = nome.trim();
+  return limpo && limpo.length <= 150 ? limpo : null;
+}
+
+// Ids das categorias pelos nomes (só as que existem)
+async function idsDasCategorias(cliente, nomes) {
+  const resultado = await cliente.query('SELECT id_categoria FROM categorias WHERE nome = ANY($1::text[])', [nomes]);
+  return resultado.rows.map((linha) => linha.id_categoria);
+}
+
+// PASSO 1: cria o rascunho com nome + categorias
 router.post('/rascunho', verificarToken, async (req, res) => {
+  const nome = validarNomeEmpresa(req.body?.nome_fantasia);
+  const categorias = Array.isArray(req.body?.categorias) ? req.body.categorias.filter((c) => typeof c === 'string') : [];
+  if (!nome) {
+    return res.status(400).json({ erro: 'O nome da empresa é obrigatório e pode ter até 150 letras.' });
+  }
+  if (!categorias.length) {
+    return res.status(400).json({ erro: 'Escolha pelo menos uma categoria.' });
+  }
+
+  const cliente = await pool.connect();
   try {
-    const { nome_fantasia, categorias } = req.body; // categorias: array de nomes
-
-    const novaEmpresa = await pool.query(
-      `INSERT INTO empresas (id_usuario, nome_fantasia, status)
-       VALUES ($1, $2, 'rascunho') RETURNING *`,
-      [req.usuario.id, nome_fantasia]
-    );
-    const empresa = novaEmpresa.rows[0];
-
-    for (const nomeCategoria of categorias || []) {
-      const categoria = await pool.query('SELECT id_categoria FROM categorias WHERE nome = $1', [nomeCategoria]);
-      if (categoria.rows[0]) {
-        await pool.query(
-          'INSERT INTO empresa_categoria (empresa_id, categoria_id) VALUES ($1, $2)',
-          [empresa.id_empresa, categoria.rows[0].id_categoria]
-        );
-      }
+    const ids = await idsDasCategorias(cliente, categorias);
+    if (!ids.length) {
+      return res.status(400).json({ erro: 'Categoria inválida.' });
     }
 
-    return res.status(201).json(empresa);
+    // Empresa e categorias juntas (tudo ou nada)
+    await cliente.query('BEGIN');
+    const novaEmpresa = await cliente.query(
+      `INSERT INTO empresas (id_usuario, nome_fantasia, status)
+       VALUES ($1, $2, 'rascunho') RETURNING *`,
+      [req.usuario.id, nome]
+    );
+    const empresa = novaEmpresa.rows[0];
+    for (const idCategoria of ids) {
+      await cliente.query('INSERT INTO empresa_categoria (empresa_id, categoria_id) VALUES ($1, $2)', [empresa.id_empresa, idCategoria]);
+    }
+    await cliente.query('COMMIT');
+
+    return res.status(201).json({ ...empresa, categorias });
   } catch (erro) {
+    await cliente.query('ROLLBACK').catch(() => {});
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao criar rascunho de empresa.' });
+  } finally {
+    cliente.release();
   }
 });
 
-async function geocodificarEndereco(endereco, bairro) {
-  const consulta = `${endereco}, ${bairro}, Taquara - RS, Brasil`;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(consulta)}`;
+// Área de Taquara aceita na busca do endereço (oeste, norte, leste, sul)
+const AREA_TAQUARA = '-50.86,-29.58,-50.70,-29.72';
+const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
+async function buscarCoordenadas(consulta) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br`
+    + `&viewbox=${AREA_TAQUARA}&bounded=1&q=${encodeURIComponent(consulta)}`;
   const resposta = await fetch(url, {
     headers: { 'User-Agent': 'DivulgaMap (divulgamap.oficial@gmail.com)' },
   });
   const dados = await resposta.json();
-
-  if (!dados[0]) return null;
-
-  return { latitude: parseFloat(dados[0].lat), longitude: parseFloat(dados[0].lon) };
+  return dados[0] ? { latitude: parseFloat(dados[0].lat), longitude: parseFloat(dados[0].lon) } : null;
 }
 
-// PASSOS 2/3/5/8/9: atualiza qualquer campo do rascunho, um pedaço por vez
+// Coordenadas do endereço em Taquara: completo, sem o bairro e, por último, só a rua (sem o número)
+async function geocodificarEndereco(endereco, bairro) {
+  const rua = endereco.replace(/[,\s]*(n[º°o.]?\s*)?\d+.*$/i, '').trim();
+  const tentativas = [`${endereco}, ${bairro}, Taquara, RS`, `${endereco}, Taquara, RS`];
+  if (rua && rua !== endereco) tentativas.push(`${rua}, Taquara, RS`);
+
+  for (const [indice, consulta] of tentativas.entries()) {
+    if (indice > 0) await esperar(1000); // limite do Nominatim: 1 consulta por segundo
+    const coordenadas = await buscarCoordenadas(consulta);
+    if (coordenadas) return coordenadas;
+  }
+  return null;
+}
+
+// Texto opcional: undefined (não enviado), null (apagar) ou o texto limpo; erro se grande demais
+function textoOpcional(valor, maximo) {
+  if (valor === undefined) return { valor: undefined };
+  if (valor === null || (typeof valor === 'string' && !valor.trim())) return { valor: null };
+  if (typeof valor !== 'string' || valor.trim().length > maximo) return { erro: true };
+  return { valor: valor.trim() };
+}
+
+// PASSOS 1/2/3/5/8/9: atualiza qualquer campo do rascunho, um pedaço por vez
 router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
   try {
     const { id } = req.params;
+    const corpo = req.body ?? {};
+    const { tipo, horarios, descricao } = corpo;
 
-    const {
-      tipo,                                   // passo 2
-      endereco, bairro,                       // passo 3
-      telefone, site, google_maps_url,        // passo 5
-      horarios,                               // passo 8 — array: [{ dia_semana, abertura, fechamento, fechado }]
-      descricao,                              // passo 9
-    } = req.body;
+    if (tipo !== undefined && !TIPOS_EMPRESA.includes(tipo)) {
+      return res.status(400).json({ erro: 'tipo deve ser "comercio", "servico" ou "ambos".' });
+    }
+    let nome;
+    if (corpo.nome_fantasia !== undefined) {
+      nome = validarNomeEmpresa(corpo.nome_fantasia);
+      if (!nome) return res.status(400).json({ erro: 'O nome da empresa é obrigatório e pode ter até 150 letras.' });
+    }
 
+    const campos = {
+      telefone: textoOpcional(corpo.telefone, 20),
+      site: textoOpcional(corpo.site, 255),
+      google_maps_url: textoOpcional(corpo.google_maps_url, 500),
+      endereco: textoOpcional(corpo.endereco, 255),
+      bairro: textoOpcional(corpo.bairro, 100),
+      referencia: textoOpcional(corpo.referencia, 150),
+    };
+    const LIMITES = { telefone: 20, site: 255, google_maps_url: 500, endereco: 255, bairro: 100, referencia: 150 };
+    for (const [campo, resultado] of Object.entries(campos)) {
+      if (resultado.erro) return res.status(400).json({ erro: `${campo} pode ter até ${LIMITES[campo]} caracteres.` });
+    }
+
+    // Categorias novas substituem as antigas
+    if (corpo.categorias !== undefined) {
+      const nomes = Array.isArray(corpo.categorias) ? corpo.categorias.filter((c) => typeof c === 'string') : [];
+      const ids = await idsDasCategorias(pool, nomes);
+      if (!ids.length) return res.status(400).json({ erro: 'Escolha pelo menos uma categoria.' });
+      await pool.query('DELETE FROM empresa_categoria WHERE empresa_id = $1', [id]);
+      for (const idCategoria of ids) {
+        await pool.query('INSERT INTO empresa_categoria (empresa_id, categoria_id) VALUES ($1, $2)', [id, idCategoria]);
+      }
+    }
+
+    // Contatos: enviado com valor grava, enviado vazio apaga, não enviado mantém
+    const contato = (campo) => campos[campo].valor;
     const atualizada = await pool.query(
       `UPDATE empresas SET
         tipo = COALESCE($1, tipo),
-        telefone = COALESCE($2, telefone),
-        site = COALESCE($3, site),
-        google_maps_url = COALESCE($4, google_maps_url),
-        descricao = COALESCE($5, descricao)
-       WHERE id_empresa = $6
+        telefone = CASE WHEN $2 THEN $3 ELSE telefone END,
+        site = CASE WHEN $4 THEN $5 ELSE site END,
+        google_maps_url = CASE WHEN $6 THEN $7 ELSE google_maps_url END,
+        descricao = COALESCE($8, descricao),
+        nome_fantasia = COALESCE($9, nome_fantasia)
+       WHERE id_empresa = $10
        RETURNING *`,
-      [tipo, telefone, site, google_maps_url, descricao, id]
+      [
+        tipo ?? null,
+        contato('telefone') !== undefined, contato('telefone') ?? null,
+        contato('site') !== undefined, contato('site') ?? null,
+        contato('google_maps_url') !== undefined, contato('google_maps_url') ?? null,
+        descricao ?? null, nome ?? null, id,
+      ]
     );
 
-    // Campos de endereço
-    if (endereco || bairro) {
-      const enderecoExistente = await pool.query('SELECT * FROM enderecos WHERE empresa_id = $1', [id]);
+    // Endereço: novo ou alterado procura de novo o ponto no mapa
+    const endereco = contato('endereco');
+    const bairro = contato('bairro');
+    const referencia = contato('referencia');
+    if (endereco !== undefined || bairro !== undefined || referencia !== undefined) {
+      const existente = (await pool.query('SELECT * FROM enderecos WHERE empresa_id = $1', [id])).rows[0];
+      const enderecoFinal = endereco !== undefined ? endereco : existente?.endereco;
+      const bairroFinal = bairro !== undefined ? bairro : existente?.bairro;
+      const referenciaFinal = referencia !== undefined ? referencia : existente?.referencia ?? null;
+      if (!enderecoFinal || !bairroFinal) {
+        return res.status(400).json({ erro: 'Endereço e bairro são obrigatórios.' });
+      }
 
-      if (enderecoExistente.rows[0]) {
-        // Edição: só regeocodifica se endereco ou bairro realmente mudaram
-        const enderecoFinal = endereco || enderecoExistente.rows[0].endereco;
-        const bairroFinal = bairro || enderecoExistente.rows[0].bairro;
-
-        let coordenadas = { latitude: enderecoExistente.rows[0].latitude, longitude: enderecoExistente.rows[0].longitude };
-        if (endereco || bairro) {
-          const novasCoordenadas = await geocodificarEndereco(enderecoFinal, bairroFinal);
-          if (!novasCoordenadas) {
-            return res.status(400).json({ erro: 'Não conseguimos localizar esse endereço no mapa. Confira o endereço e o bairro.' });
-          }
-          coordenadas = novasCoordenadas;
+      let coordenadas = existente ? { latitude: existente.latitude, longitude: existente.longitude } : null;
+      const mudou = !existente || enderecoFinal !== existente.endereco || bairroFinal !== existente.bairro;
+      if (mudou) {
+        coordenadas = await geocodificarEndereco(enderecoFinal, bairroFinal);
+        if (!coordenadas) {
+          return res.status(400).json({ erro: 'Não achamos esse endereço em Taquara. Confira o nome da rua e o bairro.' });
         }
+      }
 
+      if (existente) {
         await pool.query(
-          `UPDATE enderecos SET endereco = $1, bairro = $2, latitude = $3, longitude = $4
-           WHERE empresa_id = $5`,
-          [enderecoFinal, bairroFinal, coordenadas.latitude, coordenadas.longitude, id]
+          `UPDATE enderecos SET endereco = $1, bairro = $2, referencia = $3, latitude = $4, longitude = $5
+           WHERE empresa_id = $6`,
+          [enderecoFinal, bairroFinal, referenciaFinal, coordenadas.latitude, coordenadas.longitude, id]
         );
       } else {
-        // Primeiro cadastro: endereco e bairro
-        if (!endereco || !bairro) {
-          return res.status(400).json({ erro: 'endereco e bairro são obrigatórios.' });
-        }
-
-        const coordenadas = await geocodificarEndereco(endereco, bairro);
-        if (!coordenadas) {
-          return res.status(400).json({ erro: 'Não conseguimos localizar esse endereço no mapa. Confira o endereço e o bairro.' });
-        }
-
         await pool.query(
-          `INSERT INTO enderecos (empresa_id, endereco, bairro, latitude, longitude)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [id, endereco, bairro, coordenadas.latitude, coordenadas.longitude]
+          `INSERT INTO enderecos (empresa_id, endereco, bairro, referencia, latitude, longitude)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [id, enderecoFinal, bairroFinal, referenciaFinal, coordenadas.latitude, coordenadas.longitude]
         );
       }
+      atualizada.rows[0] = {
+        ...atualizada.rows[0],
+        endereco: enderecoFinal, bairro: bairroFinal, referencia: referenciaFinal,
+        latitude: coordenadas.latitude, longitude: coordenadas.longitude,
+      };
     }
 
     // Horários
@@ -416,18 +504,29 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
   }
 });
 
-// PASSO 4: checa se já existe uma empresa aprovada com nome ou endereço parecido
+// PASSO 4: empresas aprovadas com nome parecido ou no mesmo endereço
 router.post('/verificar-duplicidade', verificarToken, async (req, res) => {
   try {
-    const { nome_fantasia, endereco } = req.body;
+    const nome = typeof req.body?.nome_fantasia === 'string' ? req.body.nome_fantasia.trim() : '';
+    const endereco = typeof req.body?.endereco === 'string' ? req.body.endereco.trim() : '';
+    if (!nome && endereco.length < 5) {
+      return res.json({ possivelDuplicata: false, correspondencias: [] });
+    }
 
+    const nomeNormal = 'unaccent(lower(e.nome_fantasia))';
     const resultado = await pool.query(
-      `SELECT e.id_empresa, e.nome_fantasia, en.endereco
+      `SELECT e.id_empresa, e.nome_fantasia, en.endereco, en.bairro, en.referencia
        FROM empresas e
        LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
        WHERE e.status = 'aprovada'
-         AND (e.nome_fantasia ILIKE $1 OR en.endereco ILIKE $2)`,
-      [`%${nome_fantasia}%`, `%${endereco}%`]
+         AND (
+           ($1 <> '' AND (similarity(${nomeNormal}, unaccent(lower($1))) >= 0.4
+                          OR strpos(${nomeNormal}, unaccent(lower($1))) > 0))
+           OR (length($2) >= 5 AND unaccent(lower(en.endereco)) = unaccent(lower($2)))
+         )
+       ORDER BY similarity(${nomeNormal}, unaccent(lower($1))) DESC
+       LIMIT 5`,
+      [nome, endereco]
     );
 
     return res.json({
@@ -437,6 +536,20 @@ router.post('/verificar-duplicidade', verificarToken, async (req, res) => {
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao verificar duplicidade.' });
+  }
+});
+
+// Apaga um rascunho do próprio usuário (empresas enviadas ou aprovadas não)
+router.delete('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
+  try {
+    if (req.empresa.status !== 'rascunho') {
+      return res.status(400).json({ erro: 'Só rascunhos podem ser apagados por aqui.' });
+    }
+    await pool.query('DELETE FROM empresas WHERE id_empresa = $1', [req.empresa.id_empresa]);
+    return res.json({ mensagem: 'Rascunho apagado.' });
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao apagar rascunho.' });
   }
 });
 

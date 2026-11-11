@@ -1189,3 +1189,9 @@ ALTER TABLE public.codigos_verificacao_senha ADD COLUMN IF NOT EXISTS tentativas
 ALTER TABLE public.usuarios
   ADD COLUMN IF NOT EXISTS senha_atualizada_em timestamp without time zone,
   ADD COLUMN IF NOT EXISTS sessoes_validas_desde timestamp without time zone;
+
+--
+-- Ponto de referência do endereço (cadastro de empresa)
+--
+
+ALTER TABLE public.enderecos ADD COLUMN IF NOT EXISTS referencia character varying(150);
