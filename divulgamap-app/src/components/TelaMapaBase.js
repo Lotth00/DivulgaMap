@@ -206,7 +206,7 @@ export default function TelaMapaBase({
 
       <View style={[styles.topo, { paddingTop: insets.top + 10 }]} pointerEvents="box-none">
         <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('Pesquisa')} accessibilityRole="search">
-          <LinearGradient colors={[colors.gradienteTopo, colors.gradienteBase]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <LinearGradient colors={[colors.menuInicio, colors.menuFim]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Image source={require('../../assets/images/logo-pin.png')} style={styles.iconeLogo} resizeMode="contain" />
             <Text style={styles.inputBusca}>O que você procura?</Text>
             <Ionicons name="mic-outline" size={20} color={colors.pretoTexto} />
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, elevation: 3,
   },
   iconeLogo: { width: 18, height: 20, marginRight: 8 },
-  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 15, color: colors.cinzaPlaceholder, paddingVertical: 4 },
+  inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', includeFontPadding: false, fontSize: 15, color: colors.cinzaPlaceholder, paddingVertical: 4 },
   filtros: { paddingRight: 14 },
   chip: {
     backgroundColor: colors.brancoFundo, borderWidth: 1, borderColor: '#E0E0E0',
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, elevation: 1,
   },
   chipSelecionado: { backgroundColor: colors.gradienteBase, borderColor: colors.gradienteBase },
-  textoChip: { fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  textoChip: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: 13 },
   alcaArrastar: { backgroundColor: colors.pretoTexto, width: 64, height: 4 },
   fundoFolha: { backgroundColor: colors.fundoTela, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   folhaConteudo: { paddingHorizontal: 20, paddingBottom: 40 },

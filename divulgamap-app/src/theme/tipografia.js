@@ -8,11 +8,11 @@ export const fontes = {
 
 // Estilos de texto usados nas telas
 export default {
-  tituloTela: { fontFamily: fontes.regular, fontSize: 20 },       // "Configurações", "Ofertas próximas de você"
-  tituloSecao: { fontFamily: fontes.regular, fontSize: 17 },      // "Fotos", "Avaliações" (com linha ao lado)
-  corpo: { fontFamily: fontes.regular, fontSize: 16 },
-  corpoMedio: { fontFamily: fontes.regular, fontSize: 15 },
-  legenda: { fontFamily: fontes.regular, fontSize: 13 },
-  pequeno: { fontFamily: fontes.regular, fontSize: 11 },
-  botao: { fontFamily: fontes.regular, fontSize: 16 },
+  tituloTela: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 20 },       // "Configurações", "Ofertas próximas de você"
+  tituloSecao: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 17 },      // "Fotos", "Avaliações" (com linha ao lado)
+  corpo: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 16 },
+  corpoMedio: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 15 },
+  legenda: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 13 },
+  pequeno: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 11 },
+  botao: { fontFamily: fontes.regular, includeFontPadding: false, fontSize: 16 },
 };

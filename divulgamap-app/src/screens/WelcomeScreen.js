@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tituloKoulen: {
-    fontFamily: 'Koulen_400Regular',
+    fontFamily: 'Koulen_400Regular', includeFontPadding: false,
     fontSize: 30,
     color: colors.pretoTexto,
     textAlign: 'center',
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   resizeMode: 'stretch'
   },
   subtitulo: {
-    fontFamily: 'Poppins_400Regular',
+    fontFamily: 'Poppins_400Regular', includeFontPadding: false,
     fontSize: 16,
     textAlign: 'center',
     color: colors.pretoTexto,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     width: '85%',
   },
   textoBotao: {
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold', includeFontPadding: false,
     color: colors.brancoFundo,
     fontSize: 16,
   },

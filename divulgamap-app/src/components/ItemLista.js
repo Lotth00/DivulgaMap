@@ -20,7 +20,7 @@ export default function ItemLista({ texto, descricao, onPress, direita, desativa
 const styles = StyleSheet.create({
   linha: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   textos: { flex: 1, marginRight: 8 },
-  texto: { fontFamily: tipografia.corpo.fontFamily, fontSize: 17, color: colors.pretoTexto },
+  texto: { fontFamily: tipografia.corpo.fontFamily, includeFontPadding: false, fontSize: 17, color: colors.pretoTexto },
   descricao: { ...tipografia.legenda, color: colors.textoSecundario },
   desativado: { opacity: 0.45 },
 });

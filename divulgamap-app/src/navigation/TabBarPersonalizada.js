@@ -46,5 +46,5 @@ const styles = StyleSheet.create({
   aba: { flex: 1, alignItems: 'center', paddingVertical: 8, marginHorizontal: 8, borderRadius: 16 },
   abaAtiva: { backgroundColor: '#A4E344' },
   iconePin: { width: 20, height: 22, marginBottom: 2 },
-  rotulo: { fontFamily: 'Poppins_500Medium', fontSize: 12, marginTop: 4, color: colors.pretoTexto },
+  rotulo: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: 12, marginTop: 4, color: colors.pretoTexto },
 });

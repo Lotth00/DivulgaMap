@@ -46,9 +46,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: -44, zIndex: 2,
     elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6,
   },
-  rodape: { marginTop: 'auto', fontFamily: 'Poppins_400Regular', color: '#444', marginBottom: 12 },
-  saudacao: { fontFamily: 'Poppins_600SemiBold', fontSize: 20, marginBottom: 20 },
+  rodape: { marginTop: 'auto', fontFamily: 'Poppins_400Regular', includeFontPadding: false, color: '#444', marginBottom: 12 },
+  saudacao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, fontSize: 20, marginBottom: 20 },
   areaLogada: { alignItems: 'center', width: '100%' },
   botaoSair: { backgroundColor: colors.pretoTexto, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 10 },
-  textoBotaoSair: { fontFamily: 'Poppins_600SemiBold', color: colors.brancoFundo },
+  textoBotaoSair: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo },
 });

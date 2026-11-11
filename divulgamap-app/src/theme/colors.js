@@ -21,10 +21,15 @@ export default {
   textoSecundario: '#6B6B6B',
   bordaClara: '#D9D9D9',         // linhas dos títulos e borda dos campos
   verdePreco: '#1E9B1E',         // preço com desconto e números do perfil
-  seloDesconto: '#F5FF00',       // selo "20% OFF"
+  seloDesconto: '#FFFF00',       // selo "20% OFF"
   estrela: '#FFB800',
   estrelaVazia: '#C9C9C9',
   vermelhoAviso: '#D32F2F',      // "Encerrada", erros
+  vermelhoFechado: '#D56769',    // "Fechado" do horário
+  textoTitulo: '#3C3C3C',        // título do cartão de horário
+  divisoriaCartao: '#E2E2E2',    // linha dentro do cartão do perfil
+  abaInicio: '#E6FDB0',          // fundo da aba selecionada (degradê)
+  abaFim: '#F8FC8E',
 
   // Imagem padrão sem foto (fundo em degradê claro e ícone verde)
   padraoInicio: '#E6FFC7',

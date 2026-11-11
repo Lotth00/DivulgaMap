@@ -43,9 +43,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', backgroundColor: colors.brancoFundo, borderRadius: 8, padding: 8, marginRight: 12,
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
-  textos: { flex: 1, marginLeft: 10, justifyContent: 'space-between' },
+  textos: { flex: 1, marginLeft: 10 },
   empresa: { ...tipografia.corpo, fontSize: 17, color: colors.pretoTexto },
-  apoio: { ...tipografia.legenda, color: colors.pretoTexto, marginTop: 2, flexShrink: 1 },
-  destaque: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginTop: 6, maxWidth: '100%' },
+  apoio: { ...tipografia.legenda, color: colors.pretoTexto, marginTop: 2, marginBottom: 8, flexShrink: 1 },
+  destaque: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 10, paddingVertical: 3, marginTop: 'auto', maxWidth: '100%' },
   textoDestaque: { ...tipografia.corpoMedio, color: colors.pretoTexto },
 });

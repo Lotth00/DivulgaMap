@@ -36,6 +36,6 @@ export default function SalvosScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontFamily: 'Poppins_600SemiBold', fontSize: 22, marginBottom: 20 },
-  textoSimples: { fontFamily: 'Poppins_400Regular', color: '#666' },
+  titulo: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, fontSize: 22, marginBottom: 20 },
+  textoSimples: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, color: '#666' },
 });

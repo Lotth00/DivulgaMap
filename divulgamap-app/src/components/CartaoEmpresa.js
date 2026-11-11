@@ -26,8 +26,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', backgroundColor: colors.brancoFundo, borderRadius: 8, padding: 8, marginRight: 12, marginBottom: 12,
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
   },
-  textos: { flex: 1, marginLeft: 12, justifyContent: 'space-between' },
+  textos: { flex: 1, marginLeft: 12 },
   nome: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto },
-  descricao: { ...tipografia.legenda, color: colors.pretoTexto, flexShrink: 1 },
-  saibaMais: { fontFamily: fontes.seminegrito, fontSize: 14, color: colors.pretoTexto, alignSelf: 'flex-end' },
+  descricao: { ...tipografia.legenda, color: colors.pretoTexto, marginTop: 2, marginBottom: 6, flexShrink: 1 },
+  saibaMais: { fontFamily: fontes.seminegrito, includeFontPadding: false, fontSize: 14, color: colors.pretoTexto, alignSelf: 'flex-end', marginTop: 'auto' },
 });
