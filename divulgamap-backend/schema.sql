@@ -1167,3 +1167,11 @@ CREATE TABLE IF NOT EXISTS public.denuncias_avaliacao (
     criado_em timestamp without time zone DEFAULT now() NOT NULL,
     UNIQUE (avaliacao_id, denunciante_id)
 );
+
+--
+-- Ofertas também podem ser salvas
+--
+
+ALTER TABLE public.salvos DROP CONSTRAINT IF EXISTS salvos_tipo_item_check;
+ALTER TABLE public.salvos
+  ADD CONSTRAINT salvos_tipo_item_check CHECK (tipo_item IN ('empresa', 'produto', 'promocao'));

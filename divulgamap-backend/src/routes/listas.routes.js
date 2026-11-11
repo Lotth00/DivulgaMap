@@ -45,7 +45,11 @@ router.get('/minhas', verificarToken, async (req, res) => {
          LEFT JOIN empresas e ON s.tipo_item = 'empresa' AND e.id_empresa = s.item_id
          LEFT JOIN produtos p ON s.tipo_item = 'produto' AND p.id_produto = s.item_id
          LEFT JOIN empresas ep ON ep.id_empresa = p.empresa_id
+         LEFT JOIN promocoes pm ON s.tipo_item = 'promocao' AND pm.id_promocao = s.item_id
+         LEFT JOIN empresas pme ON pme.id_empresa = pm.empresa_id
+         LEFT JOIN produtos ppm ON ppm.id_produto = pm.produto_id
          WHERE (e.status = 'aprovada') OR (p.disponivel = TRUE AND ep.status = 'aprovada')
+            OR (pme.status = 'aprovada' AND (pm.produto_id IS NULL OR ppm.disponivel = TRUE))
        ) valido ON valido.lista_id = l.id_lista
        WHERE l.usuario_id = $1
        GROUP BY l.id_lista

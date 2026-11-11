@@ -1,6 +1,6 @@
 tags:
   - name: salvos
-    description: Empresas e produtos salvos dentro das listas
+    description: Empresas, produtos e ofertas salvos dentro das listas
 
 paths:
   /salvos/lista/{listaId}:
@@ -9,7 +9,7 @@ paths:
       summary: Itens de uma lista do usuário logado
       description: |
         Cada item traz nome, foto e categoria (para a imagem padrão quando não há foto).
-        Em produtos, `empresa_nome` e `empresa_id` são da empresa que vende.
+        Em produtos e ofertas (`promocao`), `empresa_nome` e `empresa_id` são da empresa que vende; ofertas trazem `encerrada`.
         Itens de empresas não aprovadas, ou produtos indisponíveis, não aparecem (e não entram no `total_itens` da lista).
       security: [{ bearerAuth: [] }]
       parameters:
@@ -35,8 +35,8 @@ paths:
   /salvos:
     post:
       tags: [salvos]
-      summary: Salva uma empresa ou um produto numa lista
-      description: Só empresas aprovadas ou produtos disponíveis de empresas aprovadas.
+      summary: Salva uma empresa, um produto ou uma oferta numa lista
+      description: Só empresas aprovadas, produtos disponíveis ou ofertas de empresas aprovadas.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -47,7 +47,7 @@ paths:
               required: [lista_id, tipo_item, item_id]
               properties:
                 lista_id: { type: integer }
-                tipo_item: { type: string, enum: [empresa, produto] }
+                tipo_item: { type: string, enum: [empresa, produto, promocao] }
                 item_id: { type: integer }
             example:
               lista_id: 1

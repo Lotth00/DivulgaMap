@@ -151,7 +151,7 @@ router.get('/meus', verificarToken, async (req, res) => {
            ORDER BY c.nome LIMIT 1
          )) AS categoria,
          CASE WHEN h.tipo_item = 'promocao' THEN pm.data_fim < (NOW() AT TIME ZONE $2) END AS encerrada,
-         CASE WHEN h.tipo_item IN ('empresa', 'produto') THEN EXISTS (
+         CASE WHEN h.tipo_item IS NOT NULL THEN EXISTS (
            SELECT 1 FROM salvos s
            WHERE s.usuario_id = h.usuario_id AND s.tipo_item = h.tipo_item AND s.item_id = h.item_id
          ) ELSE FALSE END AS salvo

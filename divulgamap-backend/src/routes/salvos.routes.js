@@ -21,7 +21,7 @@ router.get('/lista/:listaId', verificarToken, async (req, res) => {
       return res.status(403).json({ erro: 'Você não pode ver esta lista.' });
     }
 
-    // Nome, foto e categoria de cada item (empresa ou produto)
+    // Nome, foto e categoria de cada item (empresa, produto ou oferta)
     const resultado = await pool.query(
       `SELECT
          s.id_salvo,
@@ -29,28 +29,37 @@ router.get('/lista/:listaId', verificarToken, async (req, res) => {
          s.tipo_item,
          s.item_id,
          s.criado_em,
-         COALESCE(e.nome_fantasia, p.nome) AS nome,
+         COALESCE(e.nome_fantasia, p.nome, pm.titulo) AS nome,
          CASE WHEN s.tipo_item = 'empresa'
               THEN (SELECT f.url FROM fotos_empresa f
                     WHERE f.empresa_id = e.id_empresa
                     ORDER BY f.ordem, f.id_foto LIMIT 1)
+              WHEN s.tipo_item = 'promocao'
+              THEN COALESCE(ppm.foto_url, (SELECT f.url FROM fotos_empresa f
+                    WHERE f.empresa_id = pme.id_empresa
+                    ORDER BY f.ordem, f.id_foto LIMIT 1))
               ELSE p.foto_url
          END AS foto,
-         ep.nome_fantasia AS empresa_nome,
-         COALESCE(e.id_empresa, ep.id_empresa) AS empresa_id,
+         COALESCE(ep.nome_fantasia, pme.nome_fantasia) AS empresa_nome,
+         COALESCE(e.id_empresa, ep.id_empresa, pme.id_empresa) AS empresa_id,
          COALESCE(cp.nome, (
            SELECT c.nome FROM empresa_categoria ec
            JOIN categorias c ON c.id_categoria = ec.categoria_id
-           WHERE ec.empresa_id = COALESCE(e.id_empresa, ep.id_empresa)
+           WHERE ec.empresa_id = COALESCE(e.id_empresa, ep.id_empresa, pme.id_empresa)
            ORDER BY c.nome LIMIT 1
-         )) AS categoria
+         )) AS categoria,
+         CASE WHEN s.tipo_item = 'promocao' THEN pm.data_fim < (NOW() AT TIME ZONE 'America/Sao_Paulo') END AS encerrada
        FROM salvos s
        LEFT JOIN empresas e ON s.tipo_item = 'empresa' AND e.id_empresa = s.item_id
        LEFT JOIN produtos p ON s.tipo_item = 'produto' AND p.id_produto = s.item_id
        LEFT JOIN empresas ep ON ep.id_empresa = p.empresa_id
-       LEFT JOIN categorias cp ON cp.id_categoria = p.categoria_id
+       LEFT JOIN promocoes pm ON s.tipo_item = 'promocao' AND pm.id_promocao = s.item_id
+       LEFT JOIN empresas pme ON pme.id_empresa = pm.empresa_id
+       LEFT JOIN produtos ppm ON ppm.id_produto = pm.produto_id
+       LEFT JOIN categorias cp ON cp.id_categoria = COALESCE(p.categoria_id, ppm.categoria_id)
        WHERE s.lista_id = $1
-         AND ((e.status = 'aprovada') OR (p.disponivel = TRUE AND ep.status = 'aprovada'))
+         AND ((e.status = 'aprovada') OR (p.disponivel = TRUE AND ep.status = 'aprovada')
+              OR (pme.status = 'aprovada' AND (pm.produto_id IS NULL OR ppm.disponivel = TRUE)))
        ORDER BY s.criado_em DESC, s.id_salvo DESC`,
       [listaId]
     );
@@ -61,15 +70,15 @@ router.get('/lista/:listaId', verificarToken, async (req, res) => {
   }
 });
 
-// POST protegida — salva uma empresa OU produto dentro de uma lista
+// POST protegida — salva uma empresa, produto OU oferta dentro de uma lista
 router.post('/', verificarToken, async (req, res) => {
   try {
     const { tipo_item } = req.body ?? {};
     const listaId = paraId(req.body?.lista_id);
     const itemId = paraId(req.body?.item_id);
 
-    if (!['empresa', 'produto'].includes(tipo_item)) {
-      return res.status(400).json({ erro: 'tipo_item deve ser "empresa" ou "produto".' });
+    if (!['empresa', 'produto', 'promocao'].includes(tipo_item)) {
+      return res.status(400).json({ erro: 'tipo_item deve ser "empresa", "produto" ou "promocao".' });
     }
 
     const lista = listaId ? await pool.query('SELECT usuario_id FROM listas WHERE id_lista = $1', [listaId]) : { rows: [] };
@@ -80,12 +89,15 @@ router.post('/', verificarToken, async (req, res) => {
       return res.status(403).json({ erro: 'Você não pode adicionar nesta lista.' });
     }
 
-    // Só empresa aprovada, ou produto disponível de empresa aprovada
-    const consultaItem =
-      tipo_item === 'empresa'
-        ? `SELECT 1 FROM empresas WHERE id_empresa = $1 AND status = 'aprovada'`
-        : `SELECT 1 FROM produtos p JOIN empresas e ON e.id_empresa = p.empresa_id
-           WHERE p.id_produto = $1 AND p.disponivel = TRUE AND e.status = 'aprovada'`;
+    // Só empresa aprovada, produto disponível ou oferta de empresa aprovada
+    const consultaItem = {
+      empresa: `SELECT 1 FROM empresas WHERE id_empresa = $1 AND status = 'aprovada'`,
+      produto: `SELECT 1 FROM produtos p JOIN empresas e ON e.id_empresa = p.empresa_id
+                WHERE p.id_produto = $1 AND p.disponivel = TRUE AND e.status = 'aprovada'`,
+      promocao: `SELECT 1 FROM promocoes pm JOIN empresas e ON e.id_empresa = pm.empresa_id
+                 LEFT JOIN produtos pr ON pr.id_produto = pm.produto_id
+                 WHERE pm.id_promocao = $1 AND e.status = 'aprovada' AND (pm.produto_id IS NULL OR pr.disponivel = TRUE)`,
+    }[tipo_item];
     const itemExiste = itemId ? await pool.query(consultaItem, [itemId]) : { rows: [] };
     if (!itemExiste.rows[0]) {
       return res.status(400).json({ erro: 'Item não encontrado.' });
