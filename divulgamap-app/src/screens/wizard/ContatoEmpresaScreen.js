@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useWizard, mensagemDeErro } from '../../context/WizardContext';
 import TelaWizard from '../../components/wizard/TelaWizard';
 import CampoWizard from '../../components/wizard/CampoWizard';
@@ -33,12 +33,7 @@ export default function ContatoEmpresaScreen({ navigation }) {
       // Link sem "https://" ganha o prefixo, para abrir no navegador
       const comProtocolo = (texto) => (texto.trim() && !/^https?:\/\//i.test(texto.trim()) ? `https://${texto.trim()}` : texto.trim());
       await salvar({ telefone, site: comProtocolo(site), google_maps_url: comProtocolo(mapa) });
-      // As próximas etapas (verificação, horário, fotos) chegam nas M22 e M23
-      Alert.alert(
-        'Dados salvos',
-        'O seu cadastro ficou guardado como rascunho. As próximas etapas, como verificação, horários e fotos, chegam numa próxima versão do app.'
-      );
-      navigation.getParent()?.goBack();
+      navigation.navigate('WizardMetodo');
     } catch (e) {
       setErro(mensagemDeErro(e));
     } finally {

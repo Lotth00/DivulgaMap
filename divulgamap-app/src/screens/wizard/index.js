@@ -6,12 +6,17 @@ import TipoEmpresaScreen from './TipoEmpresaScreen';
 import EnderecoEmpresaScreen from './EnderecoEmpresaScreen';
 import ConfirmacaoEmpresaScreen from './ConfirmacaoEmpresaScreen';
 import ContatoEmpresaScreen from './ContatoEmpresaScreen';
+import MetodoVerificacaoScreen from './MetodoVerificacaoScreen';
+import VerificacaoCodigoScreen from './VerificacaoCodigoScreen';
+import HorarioEmpresaScreen from './HorarioEmpresaScreen';
+import DescricaoEmpresaScreen from './DescricaoEmpresaScreen';
 
 const Stack = createStackNavigator();
 
-// Etapa onde um rascunho continua: sem endereço, no tipo; com endereço, nos contatos
+// Etapa onde um rascunho continua: sem endereço, no tipo; com endereço, nos contatos; verificado, no horário
 function etapaInicial(rascunho) {
   if (!rascunho) return 'WizardPerfil';
+  if (rascunho.verificado_em) return 'WizardHorario';
   return rascunho.endereco ? 'WizardContato' : 'WizardTipo';
 }
 
@@ -26,6 +31,10 @@ export default function CadastroEmpresa({ route }) {
         <Stack.Screen name="WizardEndereco" component={EnderecoEmpresaScreen} />
         <Stack.Screen name="WizardConfirmacao" component={ConfirmacaoEmpresaScreen} />
         <Stack.Screen name="WizardContato" component={ContatoEmpresaScreen} />
+        <Stack.Screen name="WizardMetodo" component={MetodoVerificacaoScreen} />
+        <Stack.Screen name="WizardVerificacao" component={VerificacaoCodigoScreen} />
+        <Stack.Screen name="WizardHorario" component={HorarioEmpresaScreen} />
+        <Stack.Screen name="WizardDescricao" component={DescricaoEmpresaScreen} />
       </Stack.Navigator>
     </WizardProvider>
   );
