@@ -7,6 +7,7 @@ paths:
     post:
       tags: [auth]
       summary: Cadastra um usuário
+      description: A conta já é criada com as listas "Favoritos" e "Lugares salvos".
       requestBody:
         required: true
         content:

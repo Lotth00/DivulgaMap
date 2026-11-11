@@ -29,13 +29,26 @@ router.post('/cadastro', async (req, res) => {
     // 2. Criptografa a senha antes de guardar
     const senhaHash = await bcrypt.hash(senha, 10);
 
-    // 3. Insere o novo usuário no banco
-    const novoUsuario = await pool.query(
-      'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id_usuario AS id, nome, email',
-      [nome, email, senhaHash]
-    );
-
-    return res.status(201).json(novoUsuario.rows[0]);
+    // 3. Insere o usuário e as listas padrão juntos (tudo ou nada)
+    const cliente = await pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      const novoUsuario = await cliente.query(
+        'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id_usuario AS id, nome, email',
+        [nome, email, senhaHash]
+      );
+      await cliente.query(
+        `INSERT INTO listas (usuario_id, nome) VALUES ($1, 'Favoritos'), ($1, 'Lugares salvos')`,
+        [novoUsuario.rows[0].id]
+      );
+      await cliente.query('COMMIT');
+      return res.status(201).json(novoUsuario.rows[0]);
+    } catch (erroTransacao) {
+      await cliente.query('ROLLBACK');
+      throw erroTransacao;
+    } finally {
+      cliente.release();
+    }
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao cadastrar usuário.' });
