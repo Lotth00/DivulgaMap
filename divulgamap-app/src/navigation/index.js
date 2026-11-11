@@ -13,6 +13,7 @@ import ContaScreen from '../screens/ContaScreen';
 import OfertaScreen from '../screens/OfertaScreen';
 import PesquisaScreen from '../screens/PesquisaScreen';
 import PerfilEmpresaScreen from '../screens/PerfilEmpresaScreen';
+import ListaDetalheScreen from '../screens/ListaDetalheScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -40,6 +41,7 @@ export default function Navigation() {
         <Stack.Screen name="Oferta" component={OfertaScreen} />
         <Stack.Screen name="Pesquisa" component={PesquisaScreen} />
         <Stack.Screen name="Empresa" component={PerfilEmpresaScreen} />
+        <Stack.Screen name="ListaDetalhe" component={ListaDetalheScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

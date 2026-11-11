@@ -30,6 +30,9 @@ export default {
   divisoriaCartao: '#E2E2E2',    // linha dentro do cartão do perfil
   abaInicio: '#E6FDB0',          // fundo da aba selecionada (degradê)
   abaFim: '#F8FC8E',
+  iconeFavoritos: '#73C400',     // coração da lista Favoritos
+  iconeLista: '#D4DE01',         // estrela das outras listas
+  iconeMenu: '#454545',          // ⋮ das listas
 
   // Imagem padrão sem foto (fundo em degradê claro e ícone verde)
   padraoInicio: '#E6FFC7',
