@@ -11,6 +11,8 @@ import BotaoGradiente from '../components/BotaoGradiente';
 import Carregando from '../components/Carregando';
 import EstadoVazio from '../components/EstadoVazio';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
+import ModalSalvar from '../components/ModalSalvar';
+import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
 import colors from '../theme/colors';
 import tipografia, { fontes } from '../theme/tipografia';
 
@@ -65,6 +67,9 @@ function Regra({ icone, children }) {
 export default function OfertaScreen({ route, navigation }) {
   const { id, oferta: ofertaInicial } = route.params ?? {};
   const { logado } = useAuth();
+  const [salvo, setSalvo] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [pedirLogin, setPedirLogin] = useState(false);
   const { width } = useWindowDimensions();
   const [oferta, setOferta] = useState(ofertaInicial ?? null);
   const [carregando, setCarregando] = useState(!ofertaInicial);
@@ -89,6 +94,22 @@ export default function OfertaScreen({ route, navigation }) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Se a oferta já está salva em alguma lista da pessoa
+  useEffect(() => {
+    if (!logado || !id) {
+      setSalvo(false);
+      return;
+    }
+    api.get('/salvos/item', { params: { tipo_item: 'promocao', item_id: id } })
+      .then((resposta) => setSalvo(resposta.data.length > 0))
+      .catch(() => {});
+  }, [logado, id]);
+
+  function abrirSalvar() {
+    if (!logado) setPedirLogin(true);
+    else setSalvando(true);
+  }
 
   // Registro no histórico de quem está logado
   useEffect(() => {
@@ -128,6 +149,9 @@ export default function OfertaScreen({ route, navigation }) {
           </View>
           <TouchableOpacity onPress={abrirEmpresa} style={styles.linkEmpresaTopo}>
             <Text style={styles.textoLinkEmpresa} numberOfLines={1}>{oferta.empresa_nome}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={abrirSalvar} style={styles.salvar} accessibilityLabel={salvo ? 'Salvo nas suas listas' : 'Salvar'}>
+            <Ionicons name={salvo ? 'bookmark' : 'bookmark-outline'} size={26} color={colors.pretoTexto} />
           </TouchableOpacity>
         </View>
 
@@ -238,6 +262,21 @@ export default function OfertaScreen({ route, navigation }) {
       <StatusBar style="dark" />
       <Cabecalho onVoltar={() => navigation.goBack()} />
       {conteudo}
+
+      <ModalSalvar
+        visivel={salvando}
+        tipoItem="promocao"
+        itemId={id}
+        nomeItem={oferta?.produto_nome || oferta?.titulo}
+        onFechar={() => setSalvando(false)}
+        onMudou={setSalvo}
+      />
+      <ModalAcessoNecessario
+        visivel={pedirLogin}
+        mensagem={'Para salvar ofertas nas suas\nlistas, faça login ou crie uma conta'}
+        navigation={navigation}
+        onFechar={() => setPedirLogin(false)}
+      />
     </View>
   );
 }
@@ -249,6 +288,7 @@ const styles = StyleSheet.create({
   rotulo: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginRight: 10 },
   textoRotulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 13, color: colors.pretoTexto },
   linkEmpresaTopo: { flex: 1 },
+  salvar: { padding: 4, marginLeft: 8 },
   textoLinkEmpresa: { ...tipografia.legenda, color: colors.azulLink },
   nome: { ...tipografia.tituloTela, fontSize: 22, color: colors.pretoTexto, marginTop: 8 },
   subtitulo: { ...tipografia.legenda, color: colors.textoSecundario },

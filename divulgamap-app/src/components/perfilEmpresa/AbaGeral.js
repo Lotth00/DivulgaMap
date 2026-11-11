@@ -52,7 +52,7 @@ function GradeFotos({ fotos, largura, onVerTudo }) {
 }
 
 // Aba "Geral": fotos, horário, ofertas, contatos e avaliações recentes
-export default function AbaGeral({ empresa, ofertas, avaliacoes, onIrPara, onAbrirOferta }) {
+export default function AbaGeral({ empresa, ofertas, avaliacoes, minhaAvaliacao, onAvaliar, onIrPara, onAbrirOferta }) {
   const { width } = useWindowDimensions();
   const largura = width - 40;
   const total = Number(empresa.total_avaliacoes) || 0;
@@ -96,8 +96,12 @@ export default function AbaGeral({ empresa, ofertas, avaliacoes, onIrPara, onAbr
             </View>
           )}
         </View>
+        <TouchableOpacity onPress={onAvaliar} style={styles.botaoAvaliar} activeOpacity={0.7}>
+          <Ionicons name={minhaAvaliacao ? 'create-outline' : 'star-outline'} size={18} color={colors.pretoTexto} />
+          <Text style={styles.textoAvaliar}>{minhaAvaliacao ? 'Editar sua avaliação' : 'Avaliar esta empresa'}</Text>
+        </TouchableOpacity>
         {avaliacoes.length === 0 ? (
-          <Text style={styles.vazio}>Ainda não há avaliações.</Text>
+          <Text style={styles.vazio}>Ainda não há avaliações. Seja a primeira pessoa a avaliar!</Text>
         ) : (
           <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carrossel} contentContainerStyle={styles.conteudoCarrossel}>
@@ -131,4 +135,9 @@ const styles = StyleSheet.create({
   textoNota: { ...tipografia.corpo, fontSize: 18, color: colors.pretoTexto, marginRight: 4 },
   textoTotal: { ...tipografia.corpo, color: colors.textoSecundario, marginLeft: 4 },
   vazio: { ...tipografia.legenda, color: colors.textoSecundario },
+  botaoAvaliar: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 12,
+    borderWidth: 1, borderColor: colors.bordaClara, backgroundColor: colors.brancoFundo, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  textoAvaliar: { ...tipografia.corpoMedio, color: colors.pretoTexto, marginLeft: 6 },
 });

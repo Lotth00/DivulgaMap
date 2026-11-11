@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Estrelas from '../Estrelas';
 import EstadoVazio from '../EstadoVazio';
 import CartaoAvaliacao from './CartaoAvaliacao';
@@ -8,10 +9,22 @@ import tipografia from '../../theme/tipografia';
 import { formatarNota } from './util';
 
 // Aba de avaliações: resumo com barras por nota e a lista completa
-export default function AbaAvaliacoes({ empresa, avaliacoes }) {
+export default function AbaAvaliacoes({ empresa, avaliacoes, minhaAvaliacao, onAvaliar }) {
   if (!avaliacoes.length) {
-    return <EstadoVazio icone="chatbubbles-outline" mensagem="Ainda não há avaliações para esta empresa." />;
+    return (
+      <EstadoVazio
+        icone="chatbubbles-outline"
+        mensagem="Ainda não há avaliações para esta empresa."
+        textoAcao="Avaliar esta empresa"
+        onAcao={onAvaliar}
+      />
+    );
   }
+
+  // A avaliação da própria pessoa aparece primeiro
+  const ordenadas = minhaAvaliacao
+    ? [minhaAvaliacao, ...avaliacoes.filter((a) => a.id_avaliacao !== minhaAvaliacao.id_avaliacao)]
+    : avaliacoes;
 
   const contagem = [5, 4, 3, 2, 1].map((nota) => ({
     nota,
@@ -39,8 +52,13 @@ export default function AbaAvaliacoes({ empresa, avaliacoes }) {
         </View>
       </View>
 
-      {avaliacoes.map((avaliacao) => (
-        <CartaoAvaliacao key={avaliacao.id_avaliacao} avaliacao={avaliacao} />
+      <TouchableOpacity onPress={onAvaliar} style={styles.botaoAvaliar} activeOpacity={0.7}>
+        <Ionicons name={minhaAvaliacao ? 'create-outline' : 'star-outline'} size={18} color={colors.pretoTexto} />
+        <Text style={styles.textoAvaliar}>{minhaAvaliacao ? 'Editar sua avaliação' : 'Avaliar esta empresa'}</Text>
+      </TouchableOpacity>
+
+      {ordenadas.map((avaliacao) => (
+        <CartaoAvaliacao key={avaliacao.id_avaliacao} avaliacao={avaliacao} minha={avaliacao === minhaAvaliacao} />
       ))}
     </View>
   );
@@ -56,4 +74,9 @@ const styles = StyleSheet.create({
   media: { alignItems: 'center', marginLeft: 20 },
   notaGrande: { ...tipografia.tituloTela, fontSize: 40, color: colors.pretoTexto },
   total: { ...tipografia.legenda, color: colors.textoSecundario, marginTop: 2 },
+  botaoAvaliar: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 16,
+    borderWidth: 1, borderColor: colors.bordaClara, backgroundColor: colors.brancoFundo, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  textoAvaliar: { ...tipografia.corpoMedio, color: colors.pretoTexto, marginLeft: 6 },
 });

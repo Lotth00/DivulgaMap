@@ -16,6 +16,9 @@ import AbaCardapio from '../components/perfilEmpresa/AbaCardapio';
 import AbaAvaliacoes from '../components/perfilEmpresa/AbaAvaliacoes';
 import AbaFotos from '../components/perfilEmpresa/AbaFotos';
 import AbaSobre from '../components/perfilEmpresa/AbaSobre';
+import ModalAvaliar from '../components/ModalAvaliar';
+import ModalSalvar from '../components/ModalSalvar';
+import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
 import { linkWhatsapp, conversar } from '../components/perfilEmpresa/util';
 import colors from '../theme/colors';
 import tipografia from '../theme/tipografia';
@@ -47,10 +50,13 @@ function rotuloDosProdutos(empresa) {
 // Perfil público da empresa, com as abas Geral, Cardápio, Avaliações, Fotos e Sobre
 export default function PerfilEmpresaScreen({ route, navigation }) {
   const { id, aba: abaInicial = 'geral', produtoId } = route.params ?? {};
-  const { logado } = useAuth();
+  const { logado, usuario } = useAuth();
   const insets = useSafeAreaInsets();
   const rolagem = useRef(null);
   const [menu, setMenu] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [pedidoLogin, setPedidoLogin] = useState(null);
+  const [salvo, setSalvo] = useState(false);
 
   const [empresa, setEmpresa] = useState(null);
   const [produtos, setProdutos] = useState([]);
@@ -92,6 +98,40 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
     carregar();
   }, [carregar]);
 
+  // Se a empresa já está salva em alguma lista da pessoa
+  useEffect(() => {
+    if (!logado || !id) {
+      setSalvo(false);
+      return;
+    }
+    api.get('/salvos/item', { params: { tipo_item: 'empresa', item_id: id } })
+      .then((resposta) => setSalvo(resposta.data.length > 0))
+      .catch(() => {});
+  }, [logado, id]);
+
+  // Nota, total e lista de avaliações de novo, sem o carregando da tela
+  async function atualizarAvaliacoes() {
+    try {
+      const [dados, lista] = await Promise.all([api.get(`/empresas/${id}`), api.get(`/avaliacoes/empresa/${id}`)]);
+      setEmpresa(dados.data);
+      setAvaliacoes(lista.data);
+    } catch (erro) {
+      // Fica a versão anterior
+    }
+  }
+
+  const minhaAvaliacao = logado ? avaliacoes.find((a) => a.usuario_id === usuario?.id) ?? null : null;
+
+  function abrirAvaliar() {
+    if (!logado) return setPedidoLogin('Para avaliar empresas, faça\nlogin ou crie uma conta');
+    setModal('avaliar');
+  }
+
+  function abrirSalvar() {
+    if (!logado) return setPedidoLogin('Para salvar empresas nas suas\nlistas, faça login ou crie uma conta');
+    setModal('salvar');
+  }
+
   // Registro no histórico de quem está logado
   useEffect(() => {
     if (!logado || !id) return;
@@ -118,7 +158,7 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
   function abrirDenuncia() {
     if (!logado) {
       setMenu(null);
-      Alert.alert('Entre na sua conta', 'Para denunciar uma empresa, faça login.');
+      setPedidoLogin('Para denunciar uma empresa, faça\nlogin ou crie uma conta');
       return;
     }
     setMenu('denuncia');
@@ -170,18 +210,28 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
         />
       );
     } else if (aba === 'avaliacoes') {
-      corpo = <AbaAvaliacoes empresa={empresa} avaliacoes={avaliacoes} />;
+      corpo = <AbaAvaliacoes empresa={empresa} avaliacoes={avaliacoes} minhaAvaliacao={minhaAvaliacao} onAvaliar={abrirAvaliar} />;
     } else if (aba === 'fotos') {
       corpo = <AbaFotos fotos={empresa.fotos ?? []} />;
     } else if (aba === 'sobre') {
       corpo = <AbaSobre empresa={empresa} />;
     } else {
-      corpo = <AbaGeral empresa={empresa} ofertas={ofertas} avaliacoes={avaliacoes} onIrPara={irPara} onAbrirOferta={abrirOferta} />;
+      corpo = (
+        <AbaGeral
+          empresa={empresa}
+          ofertas={ofertas}
+          avaliacoes={avaliacoes}
+          minhaAvaliacao={minhaAvaliacao}
+          onAvaliar={abrirAvaliar}
+          onIrPara={irPara}
+          onAbrirOferta={abrirOferta}
+        />
+      );
     }
 
     conteudo = (
       <ScrollView ref={rolagem} contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
-        <CabecalhoEmpresa empresa={empresa} />
+        <CabecalhoEmpresa empresa={empresa} salvo={salvo} onSalvar={abrirSalvar} />
 
         <View style={styles.faixaAbas}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.abas}>
@@ -232,6 +282,32 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
           </LinearGradient>
         </TouchableOpacity>
       )}
+
+      {empresa && (
+        <>
+          <ModalAvaliar
+            visivel={modal === 'avaliar'}
+            empresa={empresa}
+            avaliacaoAtual={minhaAvaliacao}
+            onFechar={() => setModal(null)}
+            onMudou={atualizarAvaliacoes}
+          />
+          <ModalSalvar
+            visivel={modal === 'salvar'}
+            tipoItem="empresa"
+            itemId={empresa.id_empresa}
+            nomeItem={empresa.nome_fantasia}
+            onFechar={() => setModal(null)}
+            onMudou={setSalvo}
+          />
+        </>
+      )}
+      <ModalAcessoNecessario
+        visivel={!!pedidoLogin}
+        mensagem={pedidoLogin ?? ''}
+        navigation={navigation}
+        onFechar={() => setPedidoLogin(null)}
+      />
 
       <Modal visible={!!menu} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
         <Pressable style={styles.fundoMenu} onPress={() => setMenu(null)} />

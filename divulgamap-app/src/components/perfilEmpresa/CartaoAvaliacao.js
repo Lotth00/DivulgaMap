@@ -7,7 +7,7 @@ import tipografia from '../../theme/tipografia';
 import { tempoDesde } from './util';
 
 // Uma avaliação: pessoa, nota, data, comentário e fotos
-export default function CartaoAvaliacao({ avaliacao, largura }) {
+export default function CartaoAvaliacao({ avaliacao, largura, minha = false }) {
   const data = avaliacao.editado_em || avaliacao.criado_em;
   return (
     <View style={[styles.cartao, largura && { width: largura }]}>
@@ -15,7 +15,7 @@ export default function CartaoAvaliacao({ avaliacao, largura }) {
         <View style={styles.avatar}>
           <Ionicons name="person" size={18} color={colors.textoSecundario} />
         </View>
-        <Text style={styles.nome} numberOfLines={1}>{avaliacao.usuario_nome}</Text>
+        <Text style={styles.nome} numberOfLines={1}>{minha ? 'Você' : avaliacao.usuario_nome}</Text>
       </View>
       <View style={styles.linhaNota}>
         <Estrelas nota={avaliacao.nota} tamanho={16} />
