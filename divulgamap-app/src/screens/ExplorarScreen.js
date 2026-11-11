@@ -1,17 +1,53 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import api from '../services/api';
 import TelaMapaBase from '../components/TelaMapaBase';
+import CarrosselBanners from '../components/CarrosselBanners';
+import TituloSecao from '../components/TituloSecao';
+import CartaoOferta from '../components/CartaoOferta';
+import CartaoPromocao from '../components/CartaoPromocao';
+import CartaoEmpresa from '../components/CartaoEmpresa';
+import AbasPromocoes from '../components/AbasPromocoes';
+import Carregando from '../components/Carregando';
+import EstadoVazio from '../components/EstadoVazio';
+import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
 import colors from '../theme/colors';
+import tipografia from '../theme/tipografia';
 
-export default function ExplorarScreen() {
+const ABAS = [
+  { valor: 'especial', rotulo: 'Especiais' },
+  { valor: 'relampago', rotulo: 'Relâmpago' },
+];
+const QUANTIDADE_NOVAS_EMPRESAS = 6;
+
+// Perfil da empresa ainda não existe (M14)
+function abrirEmpresa() {
+  Alert.alert('Em breve', 'O perfil da empresa chega na próxima etapa.');
+}
+
+// Linha com rolagem horizontal
+function Carrossel({ children }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carrossel} contentContainerStyle={styles.conteudoCarrossel}>
+      {children}
+    </ScrollView>
+  );
+}
+
+export default function ExplorarScreen({ navigation }) {
   const [empresas, setEmpresas] = useState([]);
+  const [ofertas, setOfertas] = useState([]);
   const [busca, setBusca] = useState('');
   const [categoriaSelecionada, setCategoriaSelecionada] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-  const [falhou, setFalhou] = useState(false);
+  const [localizacao, setLocalizacao] = useState(null);
+  const [abaPromocao, setAbaPromocao] = useState('especial');
+  const [carregandoEmpresas, setCarregandoEmpresas] = useState(true);
+  const [carregandoOfertas, setCarregandoOfertas] = useState(true);
+  const [falhouEmpresas, setFalhouEmpresas] = useState(false);
+  const [falhouOfertas, setFalhouOfertas] = useState(false);
   const ultimaBusca = useRef(0);
+  const ultimaOferta = useRef(0);
 
   // Espera a pessoa parar de digitar antes de buscar
   useEffect(() => {
@@ -19,10 +55,15 @@ export default function ExplorarScreen() {
     return () => clearTimeout(espera);
   }, [busca, categoriaSelecionada]);
 
+  // Ofertas de novo quando a localização chega (para vir a distância)
+  useEffect(() => {
+    buscarOfertas();
+  }, [localizacao]);
+
   async function buscarEmpresas() {
     const numeroDaBusca = ++ultimaBusca.current;
-    setCarregando(true);
-    setFalhou(false);
+    setCarregandoEmpresas(true);
+    setFalhouEmpresas(false);
     try {
       const parametros = {};
       if (busca.trim()) parametros.busca = busca.trim();
@@ -32,22 +73,156 @@ export default function ExplorarScreen() {
       // Resposta de uma busca antiga é descartada
       if (numeroDaBusca === ultimaBusca.current) setEmpresas(resposta.data);
     } catch (erro) {
-      console.error('Erro ao buscar empresas', erro);
-      if (numeroDaBusca === ultimaBusca.current) setFalhou(true);
+      console.log('Erro ao buscar empresas:', erro?.message);
+      if (numeroDaBusca === ultimaBusca.current) setFalhouEmpresas(true);
     } finally {
-      if (numeroDaBusca === ultimaBusca.current) setCarregando(false);
+      if (numeroDaBusca === ultimaBusca.current) setCarregandoEmpresas(false);
     }
   }
 
-  const pontos = empresas
-    .filter((empresa) => empresa.latitude && empresa.longitude)
-    .map((empresa) => ({
-      id: empresa.id_empresa,
-      latitude: parseFloat(empresa.latitude),
-      longitude: parseFloat(empresa.longitude),
-      titulo: empresa.nome_fantasia,
-      descricao: empresa.categorias,
-    }));
+  async function buscarOfertas() {
+    const numero = ++ultimaOferta.current;
+    setCarregandoOfertas(true);
+    setFalhouOfertas(false);
+    try {
+      const parametros = { limite: 50 };
+      if (localizacao) {
+        parametros.lat = localizacao.latitude;
+        parametros.lng = localizacao.longitude;
+      }
+      const resposta = await api.get('/promocoes/ativas', { params: parametros });
+      if (numero === ultimaOferta.current) setOfertas(resposta.data);
+    } catch (erro) {
+      console.log('Erro ao buscar ofertas:', erro?.message);
+      if (numero === ultimaOferta.current) setFalhouOfertas(true);
+    } finally {
+      if (numero === ultimaOferta.current) setCarregandoOfertas(false);
+    }
+  }
+
+  function tentarDeNovo() {
+    buscarEmpresas();
+    buscarOfertas();
+  }
+
+  const abrirOferta = useCallback((oferta) => {
+    navigation.navigate('Oferta', { id: oferta.id, oferta });
+  }, [navigation]);
+
+  // Ofertas separadas por seção (e filtradas pelo chip de categoria)
+  const secoes = useMemo(() => {
+    const visiveis = categoriaSelecionada ? ofertas.filter((o) => o.categoria === categoriaSelecionada) : ofertas;
+    return {
+      produtos: visiveis.filter((o) => o.tipo === 'normal' && o.tipo_item !== 'servico'),
+      servicos: visiveis.filter((o) => o.tipo === 'normal' && o.tipo_item === 'servico'),
+      especial: visiveis.filter((o) => o.tipo === 'especial'),
+      relampago: visiveis.filter((o) => o.tipo === 'relampago'),
+    };
+  }, [ofertas, categoriaSelecionada]);
+
+  const novasEmpresas = useMemo(
+    () => [...empresas].sort((a, b) => b.id_empresa - a.id_empresa).slice(0, QUANTIDADE_NOVAS_EMPRESAS),
+    [empresas]
+  );
+
+  const pontos = useMemo(
+    () => empresas
+      .filter((empresa) => empresa.latitude && empresa.longitude)
+      .map((empresa) => ({
+        id: empresa.id_empresa,
+        latitude: parseFloat(empresa.latitude),
+        longitude: parseFloat(empresa.longitude),
+      })),
+    [empresas]
+  );
+
+  const buscando = busca.trim().length > 0;
+
+  function conteudoBusca() {
+    if (carregandoEmpresas && empresas.length === 0) return <Carregando />;
+    if (falhouEmpresas) return <ErroComTentarDeNovo onTentarDeNovo={buscarEmpresas} />;
+    if (empresas.length === 0) return <EstadoVazio icone="search-outline" mensagem={`Nada encontrado para "${busca.trim()}".`} />;
+    return (
+      <>
+        <TituloSecao titulo="Resultados" />
+        {empresas.map((empresa) => (
+          <CartaoEmpresa key={empresa.id_empresa} empresa={empresa} largura={null} onPress={abrirEmpresa} />
+        ))}
+      </>
+    );
+  }
+
+  function conteudoInicio() {
+    const carregando = (carregandoOfertas && ofertas.length === 0) || (carregandoEmpresas && empresas.length === 0);
+    if (carregando) return <Carregando />;
+    if (falhouOfertas && falhouEmpresas) return <ErroComTentarDeNovo onTentarDeNovo={tentarDeNovo} />;
+
+    const promocoesDaAba = secoes[abaPromocao];
+    const temOfertas = secoes.produtos.length || secoes.servicos.length || secoes.especial.length || secoes.relampago.length;
+
+    return (
+      <>
+        <CarrosselBanners />
+
+        {falhouOfertas ? (
+          <ErroComTentarDeNovo mensagem="Não foi possível carregar as ofertas." onTentarDeNovo={buscarOfertas} />
+        ) : !temOfertas ? (
+          <EstadoVazio icone="pricetags-outline" mensagem="Nenhuma oferta ativa por aqui agora." />
+        ) : (
+          <>
+            {secoes.produtos.length > 0 && (
+              <View style={styles.secao}>
+                <TituloSecao titulo="Ofertas próximas de você" />
+                <Carrossel>
+                  {secoes.produtos.map((oferta) => (
+                    <CartaoOferta key={oferta.id} oferta={oferta} onPress={() => abrirOferta(oferta)} />
+                  ))}
+                </Carrossel>
+              </View>
+            )}
+
+            {secoes.servicos.length > 0 && (
+              <View style={styles.secao}>
+                <TituloSecao titulo="Serviços próximos de você" />
+                <Carrossel>
+                  {secoes.servicos.map((oferta) => (
+                    <CartaoOferta key={oferta.id} oferta={oferta} onPress={() => abrirOferta(oferta)} />
+                  ))}
+                </Carrossel>
+              </View>
+            )}
+
+            <View style={styles.secao}>
+              <TituloSecao titulo="Ofertas" />
+              <AbasPromocoes abas={ABAS} selecionada={abaPromocao} onSelecionar={setAbaPromocao} />
+              {promocoesDaAba.length === 0 ? (
+                <Text style={styles.textoVazio}>
+                  {abaPromocao === 'relampago' ? 'Nenhuma oferta relâmpago agora.' : 'Nenhuma oferta especial agora.'}
+                </Text>
+              ) : (
+                <Carrossel>
+                  {promocoesDaAba.map((oferta) => (
+                    <CartaoPromocao key={oferta.id} oferta={oferta} onPress={() => abrirOferta(oferta)} />
+                  ))}
+                </Carrossel>
+              )}
+            </View>
+          </>
+        )}
+
+        {!falhouEmpresas && novasEmpresas.length > 0 && (
+          <View style={styles.secao}>
+            <TituloSecao titulo="Novos negócios no app" />
+            <Carrossel>
+              {novasEmpresas.map((empresa) => (
+                <CartaoEmpresa key={empresa.id_empresa} empresa={empresa} onPress={abrirEmpresa} />
+              ))}
+            </Carrossel>
+          </View>
+        )}
+      </>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -58,40 +233,18 @@ export default function ExplorarScreen() {
         categoriaSelecionada={categoriaSelecionada}
         onMudarCategoria={setCategoriaSelecionada}
         pontos={pontos}
+        onTocarPonto={abrirEmpresa}
+        onMudarLocalizacao={setLocalizacao}
       >
-        <Text style={styles.titulo}>Empresas por perto</Text>
-
-        {carregando && empresas.length === 0 ? (
-          <ActivityIndicator color={colors.pretoTexto} />
-        ) : falhou ? (
-          <Text style={styles.textoVazio}>Não foi possível carregar as empresas. Confira sua conexão.</Text>
-        ) : empresas.length === 0 ? (
-          <Text style={styles.textoVazio}>Nenhuma empresa encontrada por aqui ainda.</Text>
-        ) : (
-          <FlatList
-            data={empresas}
-            keyExtractor={(item) => String(item.id_empresa)}
-            renderItem={({ item }) => (
-              <View style={styles.cardEmpresa}>
-                <View style={styles.fotoPlaceholder} />
-                <View>
-                  <Text style={styles.nomeEmpresa}>{item.nome_fantasia}</Text>
-                  <Text style={styles.categoriaEmpresa}>{item.categorias}</Text>
-                </View>
-              </View>
-            )}
-          />
-        )}
+        {buscando ? conteudoBusca() : conteudoInicio()}
       </TelaMapaBase>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titulo: { fontFamily: 'Poppins_600SemiBold', fontSize: 18, marginBottom: 14 },
-  textoVazio: { fontFamily: 'Poppins_400Regular', color: '#666' },
-  cardEmpresa: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#EEE', flexDirection: 'row', alignItems: 'center' },
-  fotoPlaceholder: { width: 48, height: 48, borderRadius: 10, backgroundColor: colors.cinzaInput, marginRight: 12 },
-  nomeEmpresa: { fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
-  categoriaEmpresa: { fontFamily: 'Poppins_400Regular', color: '#666', fontSize: 13 },
+  secao: { marginBottom: 22 },
+  carrossel: { marginHorizontal: -20 },
+  conteudoCarrossel: { paddingHorizontal: 20, paddingVertical: 4 },
+  textoVazio: { ...tipografia.legenda, color: colors.textoSecundario },
 });
