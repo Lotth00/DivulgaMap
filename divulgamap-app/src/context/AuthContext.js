@@ -27,6 +27,13 @@ export function AuthProvider({ children }) {
     setUsuario(null);
   }
 
+  // Dados do usuário alterados no perfil (ex.: nome e foto devolvidos por PUT /usuarios/me)
+  async function atualizarUsuario(dadosNovos) {
+    const atualizado = { ...usuario, ...dadosNovos };
+    await AsyncStorage.setItem('@divulgamap:usuario', JSON.stringify(atualizado));
+    setUsuario(atualizado);
+  }
+
   // Sessão expirada: sai da conta
   useEffect(() => {
     definirAoExpirarSessao(() => sair());
@@ -34,7 +41,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ usuario, logado: !!usuario, carregandoSessao, entrar, sair }}>
+    <AuthContext.Provider value={{ usuario, logado: !!usuario, carregandoSessao, entrar, sair, atualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

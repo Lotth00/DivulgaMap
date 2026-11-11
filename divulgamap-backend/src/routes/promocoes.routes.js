@@ -79,12 +79,20 @@ function validarCamposPorTipo({ tipo, desconto_percentual, condicao, data_inicio
   return null; 
 }
 
+// Colunas da promoção, com as datas como texto no horário de Brasília (como foram gravadas)
+function camposPromocao(prefixo = '') {
+  return `${prefixo}id_promocao, ${prefixo}empresa_id, ${prefixo}produto_id, ${prefixo}tipo, ${prefixo}titulo,
+    ${prefixo}descricao, ${prefixo}condicao, ${prefixo}desconto_percentual, ${prefixo}status,
+    to_char(${prefixo}data_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_inicio,
+    to_char(${prefixo}data_fim, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_fim`;
+}
+
 // LISTAR promoções de uma empresa
 router.get('/empresa/:empresaId', async (req, res) => {
   try {
     const { empresaId } = req.params;
     const resultado = await pool.query(
-      'SELECT * FROM promocoes WHERE empresa_id = $1 ORDER BY data_inicio DESC',
+      `SELECT ${camposPromocao()} FROM promocoes WHERE empresa_id = $1 ORDER BY data_inicio DESC`,
       [empresaId]
     );
     return res.json(resultado.rows);
@@ -98,7 +106,7 @@ router.get('/empresa/:empresaId', async (req, res) => {
 router.get('/relampago/ativas', async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT p.* FROM promocoes p
+      `SELECT ${camposPromocao('p.')} FROM promocoes p
        JOIN empresas e ON e.id_empresa = p.empresa_id
        WHERE p.tipo = 'relampago' AND e.status = 'aprovada'
          AND p.data_inicio <= (NOW() AT TIME ZONE $1)
@@ -246,7 +254,7 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
     const novaPromocao = await pool.query(
       `INSERT INTO promocoes
         (empresa_id, produto_id, tipo, titulo, descricao, condicao, desconto_percentual, data_inicio, data_fim, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'agendada') RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'agendada') RETURNING ${camposPromocao()}`,
       [empresa_id, produto_id || null, tipo, titulo.trim(), descricao, condicao || null, desconto_percentual || null, data_inicio, data_fim]
     );
 

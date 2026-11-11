@@ -1,5 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 require('dotenv').config();
+
+// Datas iguais no PC e no Render: "timestamp" sem fuso é lido como UTC e "date" fica como texto (AAAA-MM-DD)
+types.setTypeParser(1114, (texto) => new Date(`${texto.replace(' ', 'T')}Z`));
+types.setTypeParser(1082, (texto) => texto);
 
 // Conexão com o banco: pela DATABASE_URL (Neon, com SSL) ou pelas variáveis DB_* (Postgres local)
 const pool = process.env.DATABASE_URL
