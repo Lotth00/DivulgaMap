@@ -1119,3 +1119,10 @@ ALTER TABLE ONLY public.solicitacoes_empresa
 --
 
 ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS foto_url character varying(500);
+
+--
+-- Item repetido na mesma lista (M8)
+--
+
+ALTER TABLE ONLY public.salvos
+    ADD CONSTRAINT salvos_lista_item_key UNIQUE (lista_id, tipo_item, item_id);
