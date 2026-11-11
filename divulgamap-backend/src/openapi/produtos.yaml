@@ -97,3 +97,77 @@ paths:
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /produtos/{id}:
+    put:
+      tags: [produtos]
+      summary: Edita um produto ou serviço (só o dono)
+      description: Só os campos enviados mudam. Em `descricao`, `foto_url` e `categoria_id`, `null` ou texto vazio apaga o valor.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número do produto (id_produto)
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome: { type: string, maxLength: 150 }
+                preco: { type: number, exclusiveMinimum: true, minimum: 0 }
+                tipo_item: { type: string, enum: [produto, servico] }
+                unidade_medida: { type: string, maxLength: 20 }
+                descricao: { type: string, nullable: true }
+                foto_url: { type: string, nullable: true, maxLength: 500 }
+                categoria_id: { type: integer, nullable: true }
+            example: { preco: 2 }
+      responses:
+        '200':
+          description: Produto editado
+          content:
+            application/json:
+              example: { id_produto: 1, empresa_id: 1, tipo_item: produto, nome: Pão francês, preco: "2.00", unidade_medida: un, disponivel: true }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404':
+          description: Produto não existe ou já foi removido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Produto não encontrado. }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [produtos]
+      summary: Remove um produto ou serviço (só o dono)
+      description: |
+        O produto fica com `disponivel = false`: some da lista da empresa e das ofertas ligadas a ele,
+        mas continua no banco.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número do produto (id_produto)
+          example: 1
+      responses:
+        '200':
+          description: Produto removido
+          content:
+            application/json:
+              example: { mensagem: Produto removido. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404':
+          description: Produto não existe ou já foi removido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Produto não encontrado. }
+        '500': { $ref: '#/components/responses/ErroServidor' }

@@ -2,6 +2,8 @@ const express = require('express');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
 const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
+const idValido = require('../utils/id');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -80,17 +82,51 @@ function validarCamposPorTipo({ tipo, desconto_percentual, condicao, data_inicio
 }
 
 // Colunas da promoção, com as datas como texto no horário de Brasília (como foram gravadas)
+// status calculado pelas datas; 'expirada' gravado (encerrada pelo dono) vale sempre
 function camposPromocao(prefixo = '') {
+  const agora = `(NOW() AT TIME ZONE '${FUSO_HORARIO}')`;
   return `${prefixo}id_promocao, ${prefixo}empresa_id, ${prefixo}produto_id, ${prefixo}tipo, ${prefixo}titulo,
-    ${prefixo}descricao, ${prefixo}condicao, ${prefixo}desconto_percentual, ${prefixo}status,
+    ${prefixo}descricao, ${prefixo}condicao, ${prefixo}desconto_percentual,
+    CASE WHEN ${prefixo}status = 'expirada' OR ${prefixo}data_fim < ${agora} THEN 'expirada'
+         WHEN ${prefixo}data_inicio <= ${agora} THEN 'ativa'
+         ELSE 'agendada' END AS status,
     to_char(${prefixo}data_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_inicio,
     to_char(${prefixo}data_fim, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_fim`;
 }
 
-// LISTAR promoções de uma empresa
+// Usuário do token, se houver um válido (rotas públicas)
+function usuarioOpcional(req) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return null;
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+
+// LISTAR promoções de uma empresa; empresa não aprovada só para o dono ou admin
 router.get('/empresa/:empresaId', async (req, res) => {
   try {
-    const { empresaId } = req.params;
+    const empresaId = idValido(req.params.empresaId);
+    if (!empresaId) {
+      return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
+    const empresa = await pool.query('SELECT id_usuario, status FROM empresas WHERE id_empresa = $1', [empresaId]);
+    if (!empresa.rows[0]) {
+      return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
+    if (empresa.rows[0].status !== 'aprovada') {
+      const usuario = usuarioOpcional(req);
+      let permitido = usuario?.id === empresa.rows[0].id_usuario;
+      if (usuario && !permitido) {
+        const tipo = await pool.query('SELECT tipo FROM usuarios WHERE id_usuario = $1', [usuario.id]);
+        permitido = tipo.rows[0]?.tipo === 'admin';
+      }
+      if (!permitido) {
+        return res.status(404).json({ erro: 'Empresa não encontrada.' });
+      }
+    }
     const resultado = await pool.query(
       `SELECT ${camposPromocao()} FROM promocoes WHERE empresa_id = $1 ORDER BY data_inicio DESC`,
       [empresaId]
@@ -108,7 +144,10 @@ router.get('/relampago/ativas', async (req, res) => {
     const resultado = await pool.query(
       `SELECT ${camposPromocao('p.')} FROM promocoes p
        JOIN empresas e ON e.id_empresa = p.empresa_id
+       LEFT JOIN produtos pr ON pr.id_produto = p.produto_id
        WHERE p.tipo = 'relampago' AND e.status = 'aprovada'
+         AND p.status <> 'expirada'
+         AND (p.produto_id IS NULL OR pr.disponivel = TRUE)
          AND p.data_inicio <= (NOW() AT TIME ZONE $1)
          AND p.data_fim >= (NOW() AT TIME ZONE $1)
        ORDER BY p.data_fim ASC`,
@@ -291,10 +330,12 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
 
     // Produto precisa ser da mesma empresa
     if (produto_id) {
-      const produto = await pool.query(
-        'SELECT 1 FROM produtos WHERE id_produto = $1 AND empresa_id = $2',
-        [produto_id, empresa_id]
-      );
+      const produto = idValido(produto_id)
+        ? await pool.query(
+          'SELECT 1 FROM produtos WHERE id_produto = $1 AND empresa_id = $2 AND disponivel = TRUE',
+          [idValido(produto_id), empresa_id]
+        )
+        : { rows: [] };
       if (!produto.rows[0]) {
         return res.status(400).json({ erro: 'O produto informado não pertence a esta empresa.' });
       }
@@ -311,6 +352,120 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao criar promoção.' });
+  }
+});
+
+// Promoção pelo id; a empresa dela passa para a verificação do dono
+async function carregarPromocao(req, res, next) {
+  try {
+    const id = idValido(req.params.id);
+    if (!id) {
+      return res.status(404).json({ erro: 'Promoção não encontrada.' });
+    }
+    const resultado = await pool.query(`SELECT ${camposPromocao()} FROM promocoes WHERE id_promocao = $1`, [id]);
+    if (!resultado.rows[0]) {
+      return res.status(404).json({ erro: 'Promoção não encontrada.' });
+    }
+    req.promocao = resultado.rows[0];
+    req.empresaIdAlvo = req.promocao.empresa_id;
+    next();
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao buscar a promoção.' });
+  }
+}
+
+// Valor enviado ou o atual, quando o campo não veio
+function enviadoOuAtual(corpo, campo, atual) {
+  return corpo[campo] !== undefined ? corpo[campo] : atual[campo];
+}
+
+// EDITAR uma promoção (só o dono); só os campos enviados mudam, com as regras do POST
+router.put('/:id', verificarToken, carregarPromocao, verificarDonoEmpresa, async (req, res) => {
+  try {
+    const corpo = req.body || {};
+    const atual = req.promocao;
+
+    if (atual.status === 'expirada') {
+      return res.status(400).json({ erro: 'Esta promoção já foi encerrada e não pode ser editada.' });
+    }
+
+    const tipo = enviadoOuAtual(corpo, 'tipo', atual);
+    const titulo = enviadoOuAtual(corpo, 'titulo', atual);
+    const descricao = enviadoOuAtual(corpo, 'descricao', atual);
+    const condicao = enviadoOuAtual(corpo, 'condicao', atual);
+    const desconto_percentual = enviadoOuAtual(corpo, 'desconto_percentual', atual);
+    const produto_id = enviadoOuAtual(corpo, 'produto_id', atual);
+    const data_inicio = corpo.data_inicio !== undefined ? normalizarData(corpo.data_inicio) : atual.data_inicio;
+    const data_fim = corpo.data_fim !== undefined ? normalizarData(corpo.data_fim) : atual.data_fim;
+
+    if (typeof titulo !== 'string' || !titulo.trim() || titulo.trim().length > 150) {
+      return res.status(400).json({ erro: 'titulo é obrigatório e pode ter até 150 letras.' });
+    }
+    if (descricao !== null && typeof descricao !== 'string') {
+      return res.status(400).json({ erro: 'descricao precisa ser texto.' });
+    }
+    if (condicao !== null && (typeof condicao !== 'string' || condicao.trim().length > 255)) {
+      return res.status(400).json({ erro: 'condicao precisa ser texto de até 255 letras.' });
+    }
+
+    const erroDeValidacao = validarCamposPorTipo({ tipo, desconto_percentual, condicao: condicao?.trim(), data_inicio, data_fim });
+    if (erroDeValidacao) {
+      return res.status(400).json({ erro: erroDeValidacao });
+    }
+
+    // Produto novo precisa ser da mesma empresa e estar disponível
+    if (corpo.produto_id !== undefined && produto_id) {
+      const produtoId = idValido(produto_id);
+      const produto = produtoId
+        ? await pool.query(
+          'SELECT 1 FROM produtos WHERE id_produto = $1 AND empresa_id = $2 AND disponivel = TRUE',
+          [produtoId, atual.empresa_id]
+        )
+        : { rows: [] };
+      if (!produto.rows[0]) {
+        return res.status(400).json({ erro: 'O produto informado não pertence a esta empresa.' });
+      }
+    }
+
+    const resultado = await pool.query(
+      `UPDATE promocoes
+       SET tipo = $2, titulo = $3, descricao = $4, condicao = $5, desconto_percentual = $6,
+           produto_id = $7, data_inicio = $8, data_fim = $9
+       WHERE id_promocao = $1
+       RETURNING ${camposPromocao()}`,
+      [
+        atual.id_promocao, tipo, titulo.trim(), descricao?.trim() || null, condicao?.trim() || null,
+        desconto_percentual === '' || desconto_percentual === undefined ? null : desconto_percentual,
+        produto_id || null, data_inicio, data_fim,
+      ]
+    );
+    return res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao editar a promoção.' });
+  }
+});
+
+// ENCERRAR uma promoção (só o dono): termina agora e fica como expirada
+router.delete('/:id', verificarToken, carregarPromocao, verificarDonoEmpresa, async (req, res) => {
+  try {
+    if (req.promocao.status === 'expirada') {
+      return res.status(400).json({ erro: 'Esta promoção já foi encerrada.' });
+    }
+    const resultado = await pool.query(
+      `UPDATE promocoes
+       SET data_inicio = LEAST(data_inicio, NOW() AT TIME ZONE $2),
+           data_fim = LEAST(data_fim, NOW() AT TIME ZONE $2),
+           status = 'expirada'
+       WHERE id_promocao = $1
+       RETURNING ${camposPromocao()}`,
+      [req.promocao.id_promocao, FUSO_HORARIO]
+    );
+    return res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao encerrar a promoção.' });
   }
 });
 

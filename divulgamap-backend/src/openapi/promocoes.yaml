@@ -17,13 +17,14 @@ components:
         desconto_percentual: { type: string, nullable: true, example: "20.00" }
         data_inicio: { type: string, format: date-time }
         data_fim: { type: string, format: date-time }
-        status: { type: string, enum: [agendada, ativa, expirada] }
+        status: { type: string, enum: [agendada, ativa, expirada], description: Calculado pelas datas; encerrada pelo dono é sempre expirada }
 
 paths:
   /promocoes/empresa/{empresaId}:
     get:
       tags: [promocoes]
       summary: Promoções de uma empresa (pública)
+      description: Empresa não aprovada só aparece para o dono ou admin (com token); para os outros, 404.
       parameters:
         - $ref: '#/components/parameters/EmpresaId'
       responses:
@@ -131,6 +132,99 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
               example: { erro: 'Oferta não encontrada.' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    put:
+      tags: [promocoes]
+      summary: Edita uma promoção (só o dono)
+      description: |
+        Só os campos enviados mudam; o resultado passa pelas mesmas regras por tipo do `POST /promocoes`
+        (inclusive o máximo de 24 horas da relâmpago). `null` ou texto vazio apaga `descricao`, `condicao`,
+        `desconto_percentual` e `produto_id`. Promoção encerrada não pode ser editada.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número da promoção (id_promocao)
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                produto_id: { type: integer, nullable: true }
+                tipo: { type: string, enum: [normal, especial, relampago] }
+                titulo: { type: string, maxLength: 150 }
+                descricao: { type: string, nullable: true }
+                condicao: { type: string, nullable: true, maxLength: 255 }
+                desconto_percentual: { type: number, nullable: true, minimum: 0, maximum: 100 }
+                data_inicio: { type: string, format: date-time }
+                data_fim: { type: string, format: date-time }
+            examples:
+              desconto:
+                summary: Muda só o desconto
+                value: { desconto_percentual: 30 }
+              relampagoLonga:
+                summary: Relâmpago com 30 horas (dá 400)
+                value: { data_inicio: "2026-11-20T08:00:00", data_fim: "2026-11-21T14:00:00" }
+      responses:
+        '200':
+          description: Promoção editada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Promocao' }
+        '400':
+          description: Regra do tipo não atendida, produto de outra empresa ou promoção já encerrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Promoções relâmpago devem durar no máximo 24 horas. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404':
+          description: Promoção não existe
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Promoção não encontrada. }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [promocoes]
+      summary: Encerra uma promoção (só o dono)
+      description: |
+        A promoção termina agora (`data_fim` = agora, no horário de Brasília) e fica com status `expirada`.
+        Some de `/promocoes/ativas` e continua no banco. Se ainda não tinha começado, `data_inicio` também vira agora.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número da promoção (id_promocao)
+          example: 1
+      responses:
+        '200':
+          description: Promoção encerrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Promocao' }
+        '400':
+          description: Promoção já encerrada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Esta promoção já foi encerrada. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404':
+          description: Promoção não existe
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Promoção não encontrada. }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /promocoes/relampago/ativas:
