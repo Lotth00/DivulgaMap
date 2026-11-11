@@ -10,6 +10,11 @@ import MetodoVerificacaoScreen from './MetodoVerificacaoScreen';
 import VerificacaoCodigoScreen from './VerificacaoCodigoScreen';
 import HorarioEmpresaScreen from './HorarioEmpresaScreen';
 import DescricaoEmpresaScreen from './DescricaoEmpresaScreen';
+import FotosEmpresaScreen from './FotosEmpresaScreen';
+import PlanilhaEmpresaScreen from './PlanilhaEmpresaScreen';
+import RevisaoEmpresaScreen from './RevisaoEmpresaScreen';
+import EnviadoEmpresaScreen from './EnviadoEmpresaScreen';
+import VerificadoEmpresaScreen from './VerificadoEmpresaScreen';
 
 const Stack = createStackNavigator();
 
@@ -33,8 +38,13 @@ export default function CadastroEmpresa({ route }) {
         <Stack.Screen name="WizardContato" component={ContatoEmpresaScreen} />
         <Stack.Screen name="WizardMetodo" component={MetodoVerificacaoScreen} />
         <Stack.Screen name="WizardVerificacao" component={VerificacaoCodigoScreen} />
+        <Stack.Screen name="WizardVerificado" component={VerificadoEmpresaScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="WizardHorario" component={HorarioEmpresaScreen} />
         <Stack.Screen name="WizardDescricao" component={DescricaoEmpresaScreen} />
+        <Stack.Screen name="WizardFotos" component={FotosEmpresaScreen} />
+        <Stack.Screen name="WizardPlanilha" component={PlanilhaEmpresaScreen} />
+        <Stack.Screen name="WizardRevisao" component={RevisaoEmpresaScreen} />
+        <Stack.Screen name="WizardEnviado" component={EnviadoEmpresaScreen} options={{ gestureEnabled: false }} />
       </Stack.Navigator>
     </WizardProvider>
   );

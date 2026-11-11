@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, StyleSheet, Alert } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { useWizard, mensagemDeErro } from '../../context/WizardContext';
 import TelaWizard from '../../components/wizard/TelaWizard';
 import CampoWizard from '../../components/wizard/CampoWizard';
@@ -20,12 +20,7 @@ export default function DescricaoEmpresaScreen({ navigation }) {
     setEnviando(true);
     try {
       await salvar({ descricao: descricao.trim() });
-      // Fotos e envio para aprovação chegam na M23
-      Alert.alert(
-        'Dados salvos',
-        'O seu cadastro ficou guardado como rascunho. As próximas etapas, como fotos e envio para aprovação, chegam numa próxima versão do app.'
-      );
-      navigation.getParent()?.goBack();
+      navigation.navigate('WizardFotos');
     } catch (e) {
       setErro(mensagemDeErro(e));
     } finally {

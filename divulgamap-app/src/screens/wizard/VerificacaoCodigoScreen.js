@@ -46,7 +46,7 @@ export default function VerificacaoCodigoScreen({ navigation, route }) {
     setEnviando(true);
     try {
       await api.post(`/empresas/${empresa.id_empresa}/confirmar-codigo`, { codigo });
-      navigation.navigate('WizardHorario');
+      navigation.navigate('WizardVerificado');
     } catch (e) {
       setErro(mensagemDeErro(e));
     } finally {
