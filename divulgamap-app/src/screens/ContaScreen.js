@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import api from '../services/api';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +49,32 @@ export default function ContaScreen({ navigation }) {
 
   const nome = usuario?.nome?.split(' ')[0] ?? '';
 
+  // Cadastro de empresa: continua o rascunho existente ou começa um novo
+  async function adicionarEmpresa() {
+    try {
+      const resposta = await api.get('/empresas/rascunho-atual');
+      const rascunho = resposta.data.existeRascunho ? resposta.data.empresa : null;
+      if (!rascunho) {
+        navigation.navigate('CadastroEmpresa');
+        return;
+      }
+      Alert.alert('Cadastro em andamento', `Você começou a cadastrar "${rascunho.nome_fantasia}". Quer continuar?`, [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Começar outro',
+          style: 'destructive',
+          onPress: async () => {
+            await api.delete(`/empresas/${rascunho.id_empresa}`).catch(() => {});
+            navigation.navigate('CadastroEmpresa');
+          },
+        },
+        { text: 'Continuar', onPress: () => navigation.navigate('CadastroEmpresa', { rascunho }) },
+      ]);
+    } catch (erro) {
+      Alert.alert('Não foi possível abrir', 'Confira sua conexão e tente de novo.');
+    }
+  }
+
   return (
     <View style={styles.tela}>
       <StatusBar style="dark" />
@@ -77,7 +104,7 @@ export default function ContaScreen({ navigation }) {
 
         <View style={styles.grupo}>
           <ItemMenu icone="person" texto="Seu perfil" posicao="primeiro" onPress={() => avisarEmBreve('Seu perfil')} />
-          <ItemMenu icone="storefront" texto="Adicione sua empresa" posicao="ultimo" onPress={() => avisarEmBreve('O cadastro de empresa')} />
+          <ItemMenu icone="storefront" texto="Adicione sua empresa" posicao="ultimo" onPress={adicionarEmpresa} />
         </View>
 
         <View style={styles.grupo}>

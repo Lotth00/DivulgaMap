@@ -21,6 +21,7 @@ import DataNascimentoScreen from '../screens/conta/DataNascimentoScreen';
 import ExcluirContaScreen from '../screens/conta/ExcluirContaScreen';
 import SenhaSegurancaScreen from '../screens/conta/SenhaSegurancaScreen';
 import TrocarSenhaScreen from '../screens/conta/TrocarSenhaScreen';
+import CadastroEmpresa from '../screens/wizard';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -56,6 +57,7 @@ export default function Navigation() {
         <Stack.Screen name="ExcluirConta" component={ExcluirContaScreen} />
         <Stack.Screen name="SenhaSeguranca" component={SenhaSegurancaScreen} />
         <Stack.Screen name="TrocarSenha" component={TrocarSenhaScreen} />
+        <Stack.Screen name="CadastroEmpresa" component={CadastroEmpresa} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -21,7 +21,7 @@ function Linha({ icone, texto, onPress, primeira, ultima }) {
 
 // Endereço, telefone, Google Maps e site (só o que a empresa informou)
 export default function BlocoContato({ empresa }) {
-  const endereco = [empresa.endereco, empresa.bairro].filter(Boolean).join(' - ');
+  const endereco = [empresa.endereco, empresa.bairro, empresa.referencia].filter(Boolean).join(' - ');
   const temMapa = !!(empresa.google_maps_url || (empresa.latitude && empresa.longitude));
 
   const linhas = [
