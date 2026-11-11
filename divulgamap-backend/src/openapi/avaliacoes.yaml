@@ -2,6 +2,10 @@ tags:
   - name: avaliacoes
     description: Avaliações (nota de 1 a 5) das empresas
 
+components:
+  parameters:
+    IdAvaliacao: { in: path, name: id, required: true, schema: { type: integer }, description: Número da avaliação (id_avaliacao), example: 1 }
+
 paths:
   /avaliacoes/empresa/{empresaId}:
     get:
@@ -22,7 +26,7 @@ paths:
     post:
       tags: [avaliacoes]
       summary: Avalia uma empresa e recalcula a nota média dela
-      description: Cada usuário avalia cada empresa uma vez só.
+      description: Só empresas aprovadas, nunca a própria empresa, e uma avaliação por usuário em cada empresa (para mudar, use PUT).
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -34,7 +38,7 @@ paths:
               properties:
                 empresa_id: { type: integer }
                 nota: { type: integer, minimum: 1, maximum: 5 }
-                comentario: { type: string }
+                comentario: { type: string, maxLength: 1000 }
             example:
               empresa_id: 1
               nota: 4
@@ -44,13 +48,68 @@ paths:
           description: Avaliação registrada
           content:
             application/json:
-              example: { mensagem: Avaliação registrada. }
-        '400':
+              example: { id_avaliacao: 1, usuario_id: 2, empresa_id: 1, nota: 4, comentario: Muito bom }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403':
+          description: Tentativa de avaliar a própria empresa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Você não pode avaliar a sua própria empresa. }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
           description: O usuário já avaliou esta empresa
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
-              example: { erro: Você já avaliou esta empresa. Edite sua avaliação em vez de criar outra. }
+              example: { erro: Você já avaliou esta empresa. Edite a sua avaliação em vez de criar outra. }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/{id}:
+    put:
+      tags: [avaliacoes]
+      summary: Edita a própria avaliação e recalcula a nota média (só o autor)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdAvaliacao'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nota]
+              properties:
+                nota: { type: integer, minimum: 1, maximum: 5 }
+                comentario: { type: string, maxLength: 1000 }
+            example:
+              nota: 5
+              comentario: Melhorou muito
+      responses:
+        '200':
+          description: Avaliação atualizada
+          content:
+            application/json:
+              example: { id_avaliacao: 1, usuario_id: 2, empresa_id: 1, nota: 5, comentario: Melhorou muito }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [avaliacoes]
+      summary: Exclui a própria avaliação e recalcula a nota média (só o autor)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdAvaliacao'
+      responses:
+        '200':
+          description: Avaliação excluída
+          content:
+            application/json:
+              example: { mensagem: Avaliação excluída. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }

@@ -95,7 +95,7 @@ paths:
   /promocoes/relampago/ativas:
     get:
       tags: [promocoes]
-      summary: Promoções relâmpago em vigor agora, de qualquer empresa (pública)
+      summary: Promoções relâmpago em vigor agora, de empresas aprovadas (pública)
       responses:
         '200':
           description: Lista ordenada pela que termina primeiro
@@ -116,7 +116,9 @@ paths:
         - **especial**: exige `condicao` (ex.: "Leve 3, pague 2");
         - **relampago**: exige `desconto_percentual` ou `condicao` e dura no máximo 24 horas.
 
-        Toda promoção exige `data_inicio` e `data_fim`.
+        Toda promoção exige `data_inicio` e `data_fim` (a fim depois do início). As datas valem no horário de Brasília:
+        sem fuso (`2026-12-31T23:59:00`) são usadas como estão; com `Z` ou deslocamento (`...T17:00:00.000Z`) são convertidas.
+        `desconto_percentual`, quando enviado, vai de 0 (exclusivo) a 100.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
