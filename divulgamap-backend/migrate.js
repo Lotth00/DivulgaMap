@@ -25,14 +25,20 @@ function limparDump(sql) {
     .replace(/^ALTER (TABLE|SEQUENCE) [^;]+ OWNER TO [^;]+;\s*$/gm, '');
 }
 
+const FIM_DO_DUMP = 'PostgreSQL database dump complete';
+
 async function criarSchema() {
+  const sql = limparDump(fs.readFileSync('./schema.sql', 'utf8'));
   const existe = await pool.query(`SELECT to_regclass('public.usuarios') AS tabela`);
+
+  // Banco existente: só as alterações acrescentadas depois do dump
   if (existe.rows[0].tabela) {
-    console.log('ℹ️  As tabelas já existem neste banco. Nada foi alterado.');
+    const inicioDasAlteracoes = sql.indexOf(FIM_DO_DUMP);
+    await pool.query(sql.slice(inicioDasAlteracoes + FIM_DO_DUMP.length));
+    console.log('✅ Tabelas já existiam; alterações novas aplicadas.');
     return;
   }
 
-  const sql = limparDump(fs.readFileSync('./schema.sql', 'utf8'));
   await pool.query(sql);
   console.log('✅ Schema criado com sucesso!');
 }

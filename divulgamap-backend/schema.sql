@@ -1124,6 +1124,7 @@ ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS foto_url character varying(
 -- Item repetido na mesma lista (M8)
 --
 
+ALTER TABLE ONLY public.salvos DROP CONSTRAINT IF EXISTS salvos_lista_item_key;
 ALTER TABLE ONLY public.salvos
     ADD CONSTRAINT salvos_lista_item_key UNIQUE (lista_id, tipo_item, item_id);
 
@@ -1132,8 +1133,11 @@ ALTER TABLE ONLY public.salvos
 --
 
 ALTER TABLE public.historico
-  ADD COLUMN tipo_item character varying(20),
-  ADD COLUMN termo character varying(100),
+  DROP CONSTRAINT IF EXISTS historico_tipo_item_check,
+  DROP CONSTRAINT IF EXISTS historico_conteudo_check;
+ALTER TABLE public.historico
+  ADD COLUMN IF NOT EXISTS tipo_item character varying(20),
+  ADD COLUMN IF NOT EXISTS termo character varying(100),
   ADD CONSTRAINT historico_tipo_item_check CHECK (tipo_item IS NULL OR tipo_item IN ('empresa', 'produto', 'promocao')),
   ADD CONSTRAINT historico_conteudo_check CHECK (
     (tipo_acao = 'busca' AND termo IS NOT NULL) OR
