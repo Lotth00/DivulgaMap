@@ -473,7 +473,10 @@ router.post('/:id/reivindicar', verificarToken, async (req, res) => {
 router.post('/:id/denunciar', verificarToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { motivo, mensagem } = req.body;
+    const { motivo, mensagem } = req.body ?? {};
+    if (!['duplicada', 'informacoes_incorretas', 'nao_existe', 'outro'].includes(motivo)) {
+      return res.status(400).json({ erro: 'motivo deve ser "duplicada", "informacoes_incorretas", "nao_existe" ou "outro".' });
+    }
 
     const empresa = await pool.query('SELECT * FROM empresas WHERE id_empresa = $1', [id]);
     if (!empresa.rows[0]) {
