@@ -634,14 +634,14 @@ router.post('/:id/enviar-codigo', verificarToken, verificarDonoEmpresa, async (r
   try {
     const { id } = req.params;
     const { metodo } = req.body; // 'email' ou 'sms'
+    if (!['email', 'sms'].includes(metodo)) return res.status(400).json({ erro: 'Escolha SMS ou e-mail.' });
 
     const codigo = String(Math.floor(100000 + Math.random() * 900000)); // 6 dígitos
-    const expiraEm = new Date(Date.now() + 10 * 60 * 1000); // válido por 10 minutos
 
     await pool.query(
       `INSERT INTO codigos_verificacao (empresa_id, codigo, metodo, expira_em)
-       VALUES ($1, $2, $3, $4)`,
-      [id, codigo, metodo, expiraEm]
+       VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes')`,
+      [id, codigo, metodo]
     );
 
     if (metodo === 'email') {

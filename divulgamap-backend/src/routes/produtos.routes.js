@@ -78,6 +78,8 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
     const planilha = xlsx.read(req.file.buffer, { type: 'buffer' });
     const primeiraAba = planilha.Sheets[planilha.SheetNames[0]];
     const linhas = xlsx.utils.sheet_to_json(primeiraAba);
+    // Prévia para o app mostrar a planilha (cabeçalho + até 50 linhas)
+    const previa = xlsx.utils.sheet_to_json(primeiraAba, { header: 1, defval: '' }).slice(0, 51);
 
     const categoriasCadastradas = await pool.query('SELECT id_categoria, nome FROM categorias');
     const mapaDeCategorias = new Map(
@@ -146,7 +148,7 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
     });
 
     if (erros.length > 0) {
-      return res.status(400).json({ erro: 'A planilha tem linhas inválidas.', totalLinhas: linhas.length, detalhes: erros });
+      return res.status(400).json({ erro: 'A planilha tem linhas inválidas.', totalLinhas: linhas.length, detalhes: erros, previa });
     }
 
     for (const produto of produtosValidos) {
@@ -157,7 +159,7 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
       );
     }
 
-    return res.status(201).json({ mensagem: `${produtosValidos.length} itens importados com sucesso.` });
+    return res.status(201).json({ mensagem: `${produtosValidos.length} itens importados com sucesso.`, previa });
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: erro.message || 'Erro ao processar planilha.' });
