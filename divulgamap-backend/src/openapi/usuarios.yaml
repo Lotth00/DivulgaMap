@@ -21,14 +21,17 @@ paths:
                 telefone: "51999990000"
                 foto_perfil_url: null
                 biografia: Iniciando uma jornada pelos lugares de Taquara!
+                data_nascimento: "2008-05-10"
+                conta_privada: false
+                notificacoes_ativas: true
+                data_cadastro: "2026-10-27T18:00:00.000Z"
         '401': { $ref: '#/components/responses/SemToken' }
-        '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
     put:
       tags: [usuarios]
-      summary: Atualiza nome, telefone e biografia
-      description: Só os campos enviados mudam.
+      summary: Atualiza os dados do perfil e as preferências
+      description: Só os campos enviados mudam. `null` apaga o campo (menos o nome).
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -37,21 +40,99 @@ paths:
             schema:
               type: object
               properties:
-                nome: { type: string }
-                telefone: { type: string }
-                biografia: { type: string }
+                nome: { type: string, maxLength: 100 }
+                telefone: { type: string, nullable: true, maxLength: 20 }
+                biografia: { type: string, nullable: true, maxLength: 500 }
+                data_nascimento: { type: string, format: date, nullable: true }
+                foto_perfil_url: { type: string, nullable: true, description: Endereço https da foto }
+                conta_privada: { type: boolean }
+                notificacoes_ativas: { type: boolean }
             example:
-              nome: Teste
-              telefone: "51999990000"
-              biografia: Iniciando uma jornada pelos lugares de Taquara!
+              biografia: Oi
+              data_nascimento: "2008-05-10"
+              conta_privada: true
       responses:
         '200':
-          description: Dados atualizados
+          description: Dados atualizados (mesmo formato do GET)
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [usuarios]
+      summary: Exclui a conta e todos os dados dela
+      description: |
+        Pede a senha atual. Apaga também as empresas da pessoa (com produtos, promoções e avaliações delas),
+        listas, salvos, histórico e avaliações feitas. A conta de administradora não pode ser excluída por aqui.
+        Senha errada responde 403 (e não 401, para o app não encerrar a sessão).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [senha]
+              properties:
+                senha: { type: string, format: password }
+            example:
+              senha: "123456"
+      responses:
+        '200':
+          description: Conta excluída
           content:
             application/json:
-              example: { id: 1, nome: Teste, email: teste@teste.com, telefone: "51999990000", biografia: Iniciando uma jornada pelos lugares de Taquara! }
+              example: { mensagem: Conta excluída. }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemToken' }
-        '403': { $ref: '#/components/responses/Proibido' }
+        '403':
+          description: Senha incorreta, ou conta de administradora
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Senha incorreta. }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /usuarios/{id}/perfil:
+    get:
+      tags: [usuarios]
+      summary: Perfil de outra pessoa (público)
+      description: Conta privada mostra só nome e foto, a não ser para a própria pessoa (com token).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer }, description: Número do usuário, example: 2 }
+      responses:
+        '200':
+          description: Perfil completo, ou só nome e foto se a conta for privada
+          content:
+            application/json:
+              examples:
+                publica:
+                  value: { id: 2, nome: Ana, foto_perfil_url: null, biografia: Oi, conta_privada: false, total_avaliacoes: 1, total_fotos: 0, avaliacoes: [], fotos: [] }
+                privada:
+                  value: { id: 3, nome: Bruno, foto_perfil_url: null, conta_privada: true }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /usuarios/me/perfil:
+    get:
+      tags: [usuarios]
+      summary: Avaliações e fotos feitas pelo usuário logado
+      description: Só de empresas aprovadas, das mais recentes para as mais antigas.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Totais e listas do perfil
+          content:
+            application/json:
+              example:
+                total_avaliacoes: 1
+                total_fotos: 1
+                avaliacoes:
+                  - { id_avaliacao: 1, empresa_id: 1, empresa_nome: Padaria São João, nota: 5, comentario: Ótimo pão, criado_em: "2026-11-10T17:00:00.000Z", editado_em: null, fotos: ["https://exemplo.com/foto.jpg"] }
+                fotos:
+                  - { id_foto: 1, url: "https://exemplo.com/foto.jpg", avaliacao_id: 1, empresa_id: 1, empresa_nome: Padaria São João, criado_em: "2026-11-10T17:00:00.000Z" }
+        '401': { $ref: '#/components/responses/SemToken' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /usuarios/me/solicitar-codigo-senha:

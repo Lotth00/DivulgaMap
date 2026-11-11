@@ -1139,3 +1139,31 @@ ALTER TABLE public.historico
     (tipo_acao = 'busca' AND termo IS NOT NULL) OR
     (tipo_acao = 'visualizacao' AND tipo_item IS NOT NULL AND item_id IS NOT NULL));
 CREATE INDEX IF NOT EXISTS historico_usuario_data_idx ON public.historico (usuario_id, criado_em DESC);
+
+--
+-- Fotos das avaliações (M10)
+--
+
+CREATE TABLE IF NOT EXISTS public.fotos_avaliacao (
+    id_foto serial PRIMARY KEY,
+    avaliacao_id integer NOT NULL REFERENCES public.avaliacoes(id_avaliacao) ON DELETE CASCADE,
+    url character varying(500) NOT NULL,
+    ordem smallint DEFAULT 0 NOT NULL,
+    criado_em timestamp without time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS fotos_avaliacao_avaliacao_idx ON public.fotos_avaliacao (avaliacao_id);
+
+--
+-- Denúncias de avaliações (M10)
+--
+
+CREATE TABLE IF NOT EXISTS public.denuncias_avaliacao (
+    id_denuncia serial PRIMARY KEY,
+    avaliacao_id integer NOT NULL REFERENCES public.avaliacoes(id_avaliacao) ON DELETE CASCADE,
+    denunciante_id integer NOT NULL REFERENCES public.usuarios(id_usuario) ON DELETE CASCADE,
+    motivo character varying(20) NOT NULL CHECK (motivo IN ('ofensiva', 'falsa', 'spam', 'outro')),
+    mensagem text,
+    status character varying(20) DEFAULT 'pendente' NOT NULL CHECK (status IN ('pendente', 'recusada')),
+    criado_em timestamp without time zone DEFAULT now() NOT NULL,
+    UNIQUE (avaliacao_id, denunciante_id)
+);

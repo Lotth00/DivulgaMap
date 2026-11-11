@@ -19,7 +19,7 @@ paths:
           content:
             application/json:
               example:
-                - { id_avaliacao: 1, usuario_id: 1, empresa_id: 1, nota: 4, comentario: Muito bom, usuario_nome: Teste }
+                - { id_avaliacao: 1, usuario_id: 1, empresa_id: 1, nota: 4, comentario: Muito bom, usuario_nome: Teste, fotos: ["https://exemplo.com/foto.jpg"] }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /avaliacoes:
@@ -39,10 +39,15 @@ paths:
                 empresa_id: { type: integer }
                 nota: { type: integer, minimum: 1, maximum: 5 }
                 comentario: { type: string, maxLength: 1000 }
+                fotos:
+                  type: array
+                  maxItems: 5
+                  items: { type: string, description: Endereço https da foto }
             example:
               empresa_id: 1
               nota: 4
               comentario: Muito bom
+              fotos: ["https://exemplo.com/foto.jpg"]
       responses:
         '201':
           description: Avaliação registrada
@@ -83,6 +88,11 @@ paths:
               properties:
                 nota: { type: integer, minimum: 1, maximum: 5 }
                 comentario: { type: string, maxLength: 1000 }
+                fotos:
+                  type: array
+                  maxItems: 5
+                  description: Substitui as fotos atuais; sem este campo (ou sem comentario), o atual fica como está
+                  items: { type: string }
             example:
               nota: 5
               comentario: Melhorou muito
@@ -99,7 +109,7 @@ paths:
         '500': { $ref: '#/components/responses/ErroServidor' }
     delete:
       tags: [avaliacoes]
-      summary: Exclui a própria avaliação e recalcula a nota média (só o autor)
+      summary: Exclui uma avaliação e recalcula a nota média (autor ou admin)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdAvaliacao'
@@ -109,6 +119,115 @@ paths:
           content:
             application/json:
               example: { mensagem: Avaliação excluída. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/{id}/fotos/{fotoId}:
+    delete:
+      tags: [avaliacoes]
+      summary: Remove uma foto da avaliação (autor ou admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdAvaliacao'
+        - { in: path, name: fotoId, required: true, schema: { type: integer }, description: Número da foto (id_foto), example: 1 }
+      responses:
+        '200':
+          description: Foto removida
+          content:
+            application/json:
+              example: { mensagem: Foto removida. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/{id}/denunciar:
+    post:
+      tags: [avaliacoes]
+      summary: Denuncia a avaliação de outra pessoa
+      description: Cada pessoa denuncia cada avaliação uma vez. A denúncia vai para a fila da admin.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdAvaliacao'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo: { type: string, enum: [ofensiva, falsa, spam, outro] }
+                mensagem: { type: string, maxLength: 1000 }
+            example:
+              motivo: ofensiva
+              mensagem: Xingamentos sem relação com o atendimento.
+      responses:
+        '201':
+          description: Denúncia registrada
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403':
+          description: Tentativa de denunciar a própria avaliação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: A pessoa já denunciou esta avaliação
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Você já denunciou esta avaliação. }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/denuncias/pendentes:
+    get:
+      tags: [avaliacoes]
+      summary: Denúncias de avaliações esperando análise (só admin)
+      description: As avaliações com mais denúncias vêm primeiro.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de denúncias com a avaliação, o autor, a empresa e as fotos
+          content:
+            application/json:
+              example:
+                - { id_denuncia: 1, motivo: ofensiva, mensagem: null, id_avaliacao: 3, nota: 1, comentario: "...", autor_id: 4, autor_nome: Fulano, empresa_id: 1, empresa_nome: Padaria São João, total_denuncias: 2, fotos: [] }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/denuncias/{id}/aceitar:
+    patch:
+      tags: [avaliacoes]
+      summary: Denúncia procedente — remove a avaliação e recalcula a nota (só admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer }, description: Número da denúncia (id_denuncia), example: 1 }
+      responses:
+        '200':
+          description: Avaliação removida
+          content:
+            application/json:
+              example: { mensagem: Avaliação removida. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /avaliacoes/denuncias/{id}/recusar:
+    patch:
+      tags: [avaliacoes]
+      summary: Denúncia sem fundamento — a avaliação continua (só admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: integer }, description: Número da denúncia (id_denuncia), example: 1 }
+      responses:
+        '200':
+          description: Denúncia recusada
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
