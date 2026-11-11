@@ -175,7 +175,7 @@ function consultaOferta(distancia = 'NULL::float8') {
 // OFERTAS em vigor agora, de empresas aprovadas (pública)
 router.get('/ativas', async (req, res) => {
   try {
-    const { tipo, lat, lng, limite } = req.query;
+    const { tipo, empresa, lat, lng, limite } = req.query;
     const valores = [FUSO_HORARIO];
     const filtros = [];
 
@@ -185,6 +185,16 @@ router.get('/ativas', async (req, res) => {
       }
       valores.push(tipo);
       filtros.push(`AND p.tipo = $${valores.length}`);
+    }
+
+    // Só as ofertas de uma empresa
+    if (empresa !== undefined && empresa !== '') {
+      const empresaId = Number(empresa);
+      if (!Number.isInteger(empresaId) || empresaId < 1) {
+        return res.status(400).json({ erro: 'empresa precisa ser o número da empresa.' });
+      }
+      valores.push(empresaId);
+      filtros.push(`AND p.empresa_id = $${valores.length}`);
     }
 
     const temLat = lat !== undefined && lat !== '';

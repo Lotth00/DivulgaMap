@@ -50,6 +50,10 @@ paths:
           name: tipo
           schema: { type: string, enum: [normal, especial, relampago] }
         - in: query
+          name: empresa
+          description: Só as ofertas desta empresa (id_empresa)
+          schema: { type: integer }
+        - in: query
           name: lat
           schema: { type: number }
           example: -29.65
