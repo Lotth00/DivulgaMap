@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import api from '../services/api';
 import TelaMapaBase from '../components/TelaMapaBase';
@@ -20,11 +20,6 @@ const ABAS = [
   { valor: 'relampago', rotulo: 'Relâmpago' },
 ];
 const QUANTIDADE_NOVAS_EMPRESAS = 6;
-
-// Perfil da empresa ainda não existe (M14)
-function abrirEmpresa() {
-  Alert.alert('Em breve', 'O perfil da empresa chega na próxima etapa.');
-}
 
 // Linha com rolagem horizontal
 function Carrossel({ children }) {
@@ -101,6 +96,10 @@ export default function ExplorarScreen({ navigation }) {
     buscarEmpresas();
     buscarOfertas();
   }
+
+  const abrirEmpresa = useCallback((id) => {
+    navigation.navigate('Empresa', { id });
+  }, [navigation]);
 
   const abrirOferta = useCallback((oferta) => {
     navigation.navigate('Oferta', { id: oferta.id, oferta });
@@ -196,7 +195,7 @@ export default function ExplorarScreen({ navigation }) {
             <TituloSecao titulo="Novos negócios no app" />
             <Carrossel>
               {novasEmpresas.map((empresa) => (
-                <CartaoEmpresa key={empresa.id_empresa} empresa={empresa} onPress={abrirEmpresa} />
+                <CartaoEmpresa key={empresa.id_empresa} empresa={empresa} onPress={() => abrirEmpresa(empresa.id_empresa)} />
               ))}
             </Carrossel>
           </View>

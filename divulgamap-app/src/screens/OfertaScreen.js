@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Alert, Linking, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Linking, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -61,11 +61,6 @@ function Regra({ icone, children }) {
   );
 }
 
-// Perfil da empresa ainda não existe (M14)
-function abrirEmpresa() {
-  Alert.alert('Em breve', 'O perfil da empresa chega na próxima etapa.');
-}
-
 // Detalhes de uma oferta (produto, serviço ou promoção geral da empresa)
 export default function OfertaScreen({ route, navigation }) {
   const { id, oferta: ofertaInicial } = route.params ?? {};
@@ -100,6 +95,10 @@ export default function OfertaScreen({ route, navigation }) {
     if (!logado || !id) return;
     api.post('/historico', { tipo_acao: 'visualizacao', tipo_item: 'promocao', item_id: id }).catch(() => {});
   }, [logado, id]);
+
+  function abrirEmpresa() {
+    if (oferta?.empresa_id) navigation.push('Empresa', { id: oferta.empresa_id });
+  }
 
   function abrirRota() {
     if (!oferta?.latitude || !oferta?.longitude) return;
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   conteudo: { paddingHorizontal: 20, paddingBottom: 40 },
   linhaTopo: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   rotulo: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginRight: 10 },
-  textoRotulo: { fontFamily: fontes.media, fontSize: 13, color: colors.pretoTexto },
+  textoRotulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 13, color: colors.pretoTexto },
   linkEmpresaTopo: { flex: 1 },
   textoLinkEmpresa: { ...tipografia.legenda, color: colors.azulLink },
   nome: { ...tipografia.tituloTela, fontSize: 22, color: colors.pretoTexto, marginTop: 8 },
@@ -260,9 +259,9 @@ const styles = StyleSheet.create({
   precoDe: { ...tipografia.corpoMedio, color: colors.textoSecundario },
   riscado: { textDecorationLine: 'line-through' },
   linhaPreco: { flexDirection: 'row', alignItems: 'center' },
-  preco: { fontFamily: fontes.media, fontSize: 30, color: colors.verdePreco, marginRight: 10 },
+  preco: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 30, color: colors.verdePreco, marginRight: 10 },
   selo: { backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2 },
-  textoSelo: { fontFamily: fontes.media, fontSize: 16, color: colors.pretoTexto },
+  textoSelo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: 16, color: colors.pretoTexto },
   destaque: { alignSelf: 'flex-start', backgroundColor: colors.seloDesconto, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 4, marginTop: 12 },
   textoDestaque: { ...tipografia.corpo, color: colors.pretoTexto },
   secao: { marginTop: 24 },

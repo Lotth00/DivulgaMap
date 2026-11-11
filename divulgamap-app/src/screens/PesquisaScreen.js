@@ -52,11 +52,6 @@ function subtitulo(item) {
   return item.categoria ?? '';
 }
 
-// Perfil da empresa e página do produto ainda não existem (M14)
-function avisarEmBreve() {
-  Alert.alert('Em breve', 'Esta página chega na próxima etapa.');
-}
-
 // Botão em pílula do filtro
 function Chip({ rotulo, ativo, onPress }) {
   return (
@@ -154,17 +149,21 @@ export default function PesquisaScreen({ navigation }) {
     if (termo) registrar({ tipo_acao: 'busca', termo });
   }
 
-  // Abre um resultado e registra no histórico (a página de empresa e de produto chegam na M14)
-  async function abrirResultado(tipoItem, id) {
-    registrarBusca();
+  // Abre o item: oferta e empresa têm tela própria; produto abre a empresa na aba de produtos
+  function abrirItem(tipoItem, id, empresaId) {
     if (tipoItem === 'promocao') {
-      registrar({ tipo_acao: 'visualizacao', tipo_item: 'promocao', item_id: id });
       navigation.navigate('Oferta', { id });
-      return;
+    } else if (tipoItem === 'empresa') {
+      navigation.navigate('Empresa', { id });
+    } else {
+      registrar({ tipo_acao: 'visualizacao', tipo_item: 'produto', item_id: id });
+      navigation.navigate('Empresa', { id: empresaId, aba: 'cardapio', produtoId: id });
     }
-    await registrar({ tipo_acao: 'visualizacao', tipo_item: tipoItem, item_id: id });
-    avisarEmBreve();
-    carregarRecentes();
+  }
+
+  function abrirResultado(tipoItem, id, empresaId) {
+    registrarBusca();
+    abrirItem(tipoItem, id, empresaId);
   }
 
   function abrirRecente(item) {
@@ -172,11 +171,7 @@ export default function PesquisaScreen({ navigation }) {
       setBusca(item.termo);
       return;
     }
-    if (item.tipo_item === 'promocao') {
-      navigation.navigate('Oferta', { id: item.item_id });
-      return;
-    }
-    avisarEmBreve();
+    abrirItem(item.tipo_item, item.item_id, item.empresa_id);
   }
 
   function removerRecente(item) {
@@ -285,7 +280,7 @@ export default function PesquisaScreen({ navigation }) {
         nome: item.nome,
         apoio: `${item.tipo_item === 'servico' ? 'Serviço' : 'Produto'} - ${item.empresa_nome}`,
         extra: formatarPreco(item.preco, item.unidade_medida),
-        aoTocar: () => abrirResultado('produto', item.id),
+        aoTocar: () => abrirResultado('produto', item.id, item.empresa_id),
       });
     }
     const desconto = item.desconto_percentual ? `${Math.round(Number(item.desconto_percentual))}% OFF` : item.condicao;
