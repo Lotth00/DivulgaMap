@@ -3,8 +3,17 @@ const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
 const verificarAdmin = require('../middlewares/admin');
 const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
+const idValido = require('../utils/id');
 
 const router = express.Router();
+
+// :id que não é número válido não chega ao banco
+router.param('id', (req, res, next, valor) => {
+  if (!idValido(valor)) {
+    return res.status(404).json({ erro: 'Não encontrado.' });
+  }
+  next();
+});
 
 // Nível mínimo de semelhança da busca (0 a 1)
 const SEMELHANCA_MINIMA = 0.3;
@@ -224,6 +233,36 @@ router.get('/pendentes', verificarToken, verificarAdmin, async (req, res) => {
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao listar empresas pendentes.' });
+  }
+});
+
+// Empresas do usuário logado, em qualquer status
+router.get('/minhas', verificarToken, async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.status, e.motivo_rejeicao,
+              e.status_verificacao, e.nota_media, e.total_avaliacoes, e.data_cadastro,
+              e.enviada_para_aprovacao_em,
+              en.endereco, en.bairro,
+              (SELECT f.url FROM fotos_empresa f
+               WHERE f.empresa_id = e.id_empresa
+               ORDER BY f.ordem, f.id_foto LIMIT 1) AS foto,
+              COALESCE((SELECT json_agg(c.nome ORDER BY c.nome)
+                        FROM empresa_categoria ec JOIN categorias c ON c.id_categoria = ec.categoria_id
+                        WHERE ec.empresa_id = e.id_empresa), '[]') AS categorias
+       FROM empresas e
+       LEFT JOIN LATERAL (
+         SELECT endereco, bairro FROM enderecos
+         WHERE empresa_id = e.id_empresa ORDER BY id_endereco LIMIT 1
+       ) en ON TRUE
+       WHERE e.id_usuario = $1
+       ORDER BY e.data_cadastro DESC`,
+      [req.usuario.id]
+    );
+    return res.json(resultado.rows);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao listar suas empresas.' });
   }
 });
 

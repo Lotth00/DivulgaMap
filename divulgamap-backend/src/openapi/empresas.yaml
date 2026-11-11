@@ -158,6 +158,37 @@ paths:
         '403': { $ref: '#/components/responses/Proibido' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
+  /empresas/minhas:
+    get:
+      tags: [empresas]
+      summary: Empresas do usuário logado, em qualquer status
+      description: |
+        Inclui rascunhos, pendentes, aprovadas e rejeitadas, das mais novas para as mais antigas.
+        `motivo_rejeicao` vem preenchido quando o admin rejeitou a empresa. `foto` é a primeira foto da empresa.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista das empresas do usuário (pode ser vazia)
+          content:
+            application/json:
+              example:
+                - id_empresa: 1
+                  nome_fantasia: Padaria São João
+                  tipo: comercio
+                  status: aprovada
+                  motivo_rejeicao: null
+                  status_verificacao: aprovado
+                  nota_media: "4.50"
+                  total_avaliacoes: 2
+                  data_cadastro: "2026-10-01T10:00:00.000Z"
+                  enviada_para_aprovacao_em: "2026-10-01T10:30:00.000Z"
+                  endereco: Rua Júlio de Castilhos, 100
+                  bairro: Centro
+                  foto: null
+                  categorias: [Alimentação]
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /empresas/{id}:
     get:
       tags: [empresas]
