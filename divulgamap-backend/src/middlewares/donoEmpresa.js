@@ -1,9 +1,10 @@
 const pool = require('../config/db');
 
 // Confere se a empresa existe e pertence ao usuário logado (admin sempre passa)
+// req.empresaIdAlvo: empresa já descoberta por um middleware anterior (ex: dono do produto)
 async function verificarDonoEmpresa(req, res, next) {
   try {
-    const idRecebido = req.params.empresaId ?? req.params.id ?? req.body?.empresa_id;
+    const idRecebido = req.empresaIdAlvo ?? req.params.empresaId ?? req.params.id ?? req.body?.empresa_id;
 
     if (idRecebido === undefined || idRecebido === null || idRecebido === '') {
       return res.status(400).json({ erro: 'empresa_id é obrigatório.' });
