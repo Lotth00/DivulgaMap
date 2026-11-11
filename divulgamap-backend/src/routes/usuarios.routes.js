@@ -8,7 +8,8 @@ const router = express.Router();
 
 // Campos devolvidos do usuário (nunca a senha)
 const CAMPOS_USUARIO = `id_usuario AS id, nome, email, tipo, telefone, foto_perfil_url, biografia,
-  to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento, conta_privada, notificacoes_ativas, data_cadastro`;
+  to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento, conta_privada, notificacoes_ativas, data_cadastro,
+  to_char(senha_atualizada_em, 'YYYY-MM-DD') AS senha_atualizada_em`;
 
 function textoOpcional(valor, tamanhoMaximo) {
   if (valor === null) return { valor: null };
@@ -227,16 +228,34 @@ router.delete('/me', verificarToken, async (req, res) => {
   }
 });
 
+const TAMANHO_MINIMO_SENHA = 6;
+const MAXIMO_TENTATIVAS_CODIGO = 5;
+const ESPERA_ENTRE_CODIGOS_SEGUNDOS = 60;
+
 // PASSO 1 da troca de senha: gera um código de 6 dígitos e envia para o e-mail
 router.post('/me/solicitar-codigo-senha', verificarToken, async (req, res) => {
   try {
-    const codigo = String(Math.floor(100000 + Math.random() * 900000));
-    const expiraEm = new Date(Date.now() + 10 * 60 * 1000); // válido por 10 minutos
+    // Um código por minuto, para não lotar o e-mail
+    const recente = await pool.query(
+      `SELECT 1 FROM codigos_verificacao_senha
+       WHERE usuario_id = $1 AND criado_em > NOW() - make_interval(secs => $2)`,
+      [req.usuario.id, ESPERA_ENTRE_CODIGOS_SEGUNDOS]
+    );
+    if (recente.rows[0]) {
+      return res.status(429).json({ erro: 'Espere um minuto para pedir outro código.' });
+    }
 
+    const codigo = String(require('crypto').randomInt(100000, 1000000));
+
+    // O código novo anula os anteriores; vale por 10 minutos
+    await pool.query(
+      'UPDATE codigos_verificacao_senha SET usado = TRUE WHERE usuario_id = $1 AND usado = FALSE',
+      [req.usuario.id]
+    );
     await pool.query(
       `INSERT INTO codigos_verificacao_senha (usuario_id, codigo, expira_em)
-       VALUES ($1, $2, $3)`,
-      [req.usuario.id, codigo, expiraEm]
+       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
+      [req.usuario.id, codigo]
     );
 
     const nodemailer = require('nodemailer');
@@ -261,32 +280,78 @@ router.post('/me/solicitar-codigo-senha', verificarToken, async (req, res) => {
   }
 });
 
-// PASSO 2 da troca de senha: confirma o código e só então troca a senha
+// Troca de senha: com a senha atual ou, se a pessoa esqueceu, com o código enviado por e-mail
 router.put('/me/senha', verificarToken, async (req, res) => {
   try {
-    const { codigo, novaSenha } = req.body;
+    const { codigo, senhaAtual, novaSenha, desconectarOutros } = req.body ?? {};
 
-    if (!codigo || !novaSenha) {
-      return res.status(400).json({ erro: 'codigo e novaSenha são obrigatórios.' });
+    if (typeof novaSenha !== 'string' || novaSenha.length < TAMANHO_MINIMO_SENHA) {
+      return res.status(400).json({ erro: `A senha nova precisa ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres.` });
     }
 
-    const resultado = await pool.query(
-      `SELECT * FROM codigos_verificacao_senha
-       WHERE usuario_id = $1 AND codigo = $2 AND usado = FALSE AND expira_em > NOW()
-       ORDER BY criado_em DESC LIMIT 1`,
-      [req.usuario.id, codigo]
-    );
+    let idCodigo = null;
+    if (typeof senhaAtual === 'string' && senhaAtual) {
+      // Senha atual errada responde 403 (o 401 faria o app encerrar a sessão)
+      const atual = await pool.query('SELECT senha_hash FROM usuarios WHERE id_usuario = $1', [req.usuario.id]);
+      if (!atual.rows[0] || !(await bcrypt.compare(senhaAtual, atual.rows[0].senha_hash))) {
+        return res.status(403).json({ erro: 'A senha atual está incorreta.' });
+      }
+    } else {
+      if (typeof codigo !== 'string' || !/^\d{6}$/.test(codigo.trim())) {
+        return res.status(400).json({ erro: 'Informe a senha atual ou o código de 6 números enviado por e-mail.' });
+      }
 
-    const registro = resultado.rows[0];
-    if (!registro) {
-      return res.status(400).json({ erro: 'Código inválido ou expirado.' });
+      // Código em vigor (o mais recente, ainda não usado)
+      const ativo = await pool.query(
+        `SELECT id_codigo, codigo, tentativas FROM codigos_verificacao_senha
+         WHERE usuario_id = $1 AND usado = FALSE AND expira_em > NOW()
+         ORDER BY criado_em DESC LIMIT 1`,
+        [req.usuario.id]
+      );
+      const registro = ativo.rows[0];
+      if (!registro) {
+        return res.status(400).json({ erro: 'Código expirado. Peça um código novo.' });
+      }
+
+      // Código errado conta tentativa; na quinta, o código deixa de valer
+      if (registro.codigo !== codigo.trim()) {
+        const tentativas = registro.tentativas + 1;
+        await pool.query(
+          'UPDATE codigos_verificacao_senha SET tentativas = $1, usado = $2 WHERE id_codigo = $3',
+          [tentativas, tentativas >= MAXIMO_TENTATIVAS_CODIGO, registro.id_codigo]
+        );
+        const restantes = MAXIMO_TENTATIVAS_CODIGO - tentativas;
+        return res.status(400).json({
+          erro: restantes > 0
+            ? `Código incorreto. Você ainda tem ${restantes} ${restantes === 1 ? 'tentativa' : 'tentativas'}.`
+            : 'Código incorreto. Este código foi bloqueado; peça um novo.',
+        });
+      }
+      idCodigo = registro.id_codigo;
     }
 
     const senhaHash = await bcrypt.hash(novaSenha, 10);
+    const desconectar = desconectarOutros === true;
+    // Momento do corte em segundos, o mesmo usado no login novo deste aparelho
+    const agora = Math.floor(Date.now() / 1000);
 
-    await pool.query('UPDATE usuarios SET senha_hash = $1 WHERE id_usuario = $2', [senhaHash, req.usuario.id]);
-    await pool.query('UPDATE codigos_verificacao_senha SET usado = TRUE WHERE id_codigo = $1', [registro.id_codigo]);
+    // Com "desconectar outros", os logins anteriores deixam de valer (ver middlewares/auth.js)
+    const atualizado = await pool.query(
+      `UPDATE usuarios SET senha_hash = $1, senha_atualizada_em = NOW() AT TIME ZONE 'UTC',
+         sessoes_validas_desde = CASE WHEN $2 THEN to_timestamp($3) AT TIME ZONE 'UTC' ELSE sessoes_validas_desde END
+       WHERE id_usuario = $4 RETURNING id_usuario, nome, tipo`,
+      [senhaHash, desconectar, agora, req.usuario.id]
+    );
+    if (idCodigo) {
+      await pool.query('UPDATE codigos_verificacao_senha SET usado = TRUE WHERE id_codigo = $1', [idCodigo]);
+    }
 
+    // Este aparelho recebe um login novo para continuar conectado
+    if (desconectar) {
+      const usuario = atualizado.rows[0];
+      const token = jwt.sign({ id: usuario.id_usuario, nome: usuario.nome, tipo: usuario.tipo, iat: agora }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      return res.json({ mensagem: 'Senha alterada com sucesso.', token });
+    }
     return res.json({ mensagem: 'Senha alterada com sucesso.' });
   } catch (erro) {
     console.error(erro);

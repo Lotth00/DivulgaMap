@@ -1175,3 +1175,17 @@ CREATE TABLE IF NOT EXISTS public.denuncias_avaliacao (
 ALTER TABLE public.salvos DROP CONSTRAINT IF EXISTS salvos_tipo_item_check;
 ALTER TABLE public.salvos
   ADD CONSTRAINT salvos_tipo_item_check CHECK (tipo_item IN ('empresa', 'produto', 'promocao'));
+
+--
+-- Tentativas de código de troca de senha
+--
+
+ALTER TABLE public.codigos_verificacao_senha ADD COLUMN IF NOT EXISTS tentativas smallint DEFAULT 0 NOT NULL;
+
+--
+-- Data da última troca de senha e logins válidos a partir de quando
+--
+
+ALTER TABLE public.usuarios
+  ADD COLUMN IF NOT EXISTS senha_atualizada_em timestamp without time zone,
+  ADD COLUMN IF NOT EXISTS sessoes_validas_desde timestamp without time zone;

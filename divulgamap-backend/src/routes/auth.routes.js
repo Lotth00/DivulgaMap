@@ -13,8 +13,19 @@ function normalizarEmail(email) {
 // ROTA DE CADASTRO
 router.post('/cadastro', async (req, res) => {
   try {
-    const { nome, senha } = req.body;
-    const email = normalizarEmail(req.body.email);
+    const { nome, senha } = req.body ?? {};
+    const email = normalizarEmail(req.body?.email);
+
+    // Campos obrigatórios e senha com tamanho mínimo
+    if (typeof nome !== 'string' || !nome.trim() || nome.trim().length > 100) {
+      return res.status(400).json({ erro: 'Informe o seu nome (até 100 letras).' });
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ erro: 'Informe um e-mail válido.' });
+    }
+    if (typeof senha !== 'string' || senha.length < 6) {
+      return res.status(400).json({ erro: 'A senha precisa ter pelo menos 6 caracteres.' });
+    }
 
     // 1. Verifica se já existe um usuário com esse e-mail
     const usuarioExistente = await pool.query(
@@ -35,7 +46,7 @@ router.post('/cadastro', async (req, res) => {
       await cliente.query('BEGIN');
       const novoUsuario = await cliente.query(
         'INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id_usuario AS id, nome, email',
-        [nome, email, senhaHash]
+        [nome.trim(), email, senhaHash]
       );
       await cliente.query(
         `INSERT INTO listas (usuario_id, nome) VALUES ($1, 'Favoritos'), ($1, 'Lugares salvos')`,

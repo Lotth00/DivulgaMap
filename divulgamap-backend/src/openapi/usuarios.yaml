@@ -149,12 +149,23 @@ paths:
               example: { mensagem: Código enviado para o seu e-mail. }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '429':
+          description: Já foi pedido um código há menos de um minuto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Espere um minuto para pedir outro código. }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /usuarios/me/senha:
     put:
       tags: [usuarios]
-      summary: Troca de senha, passo 2 — confirma o código e grava a senha nova
+      summary: Troca de senha com a senha atual ou com o código enviado por e-mail
+      description: |
+        Envie `senhaAtual` (troca normal) **ou** `codigo` (quem esqueceu a senha; peça antes em
+        `POST /usuarios/me/solicitar-codigo-senha`). A senha nova precisa de pelo menos 6 caracteres.
+        O código vale 10 minutos e é bloqueado depois de 5 erros.
+        Com `desconectarOutros: true`, os logins anteriores deixam de valer e a resposta traz um `token` novo para este aparelho.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -162,25 +173,33 @@ paths:
           application/json:
             schema:
               type: object
-              required: [codigo, novaSenha]
+              required: [novaSenha]
               properties:
+                senhaAtual: { type: string, format: password }
                 codigo: { type: string }
                 novaSenha: { type: string, format: password }
+                desconectarOutros: { type: boolean }
             example:
-              codigo: "123456"
+              senhaAtual: "123456"
               novaSenha: novaSenha123
+              desconectarOutros: true
       responses:
         '200':
-          description: Senha alterada
+          description: Senha alterada (com `token` quando desconectou os outros)
           content:
             application/json:
-              example: { mensagem: Senha alterada com sucesso. }
+              example: { mensagem: Senha alterada com sucesso., token: eyJhbGciOi... }
         '400':
-          description: Campos faltando, ou código inválido ou expirado
+          description: Senha nova curta, código faltando, incorreto (com as tentativas restantes) ou expirado
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
-              example: { erro: Código inválido ou expirado. }
+              example: { erro: Código incorreto. Você ainda tem 4 tentativas. }
         '401': { $ref: '#/components/responses/SemToken' }
-        '403': { $ref: '#/components/responses/Proibido' }
+        '403':
+          description: Senha atual incorreta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: A senha atual está incorreta. }
         '500': { $ref: '#/components/responses/ErroServidor' }
