@@ -48,7 +48,7 @@ export default function GerenciarContaScreen({ navigation }) {
 
       <View style={styles.grupo}>
         <ItemMenu icone="id-card-outline" texto="Dados pessoais" posicao="primeiro" onPress={() => navigation.navigate('DadosPessoais')} />
-        <ItemMenu icone="shield-outline" texto="Senha e segurança" posicao="meio" onPress={() => avisarEmBreve('Senha e segurança')} />
+        <ItemMenu icone="shield-outline" texto="Senha e segurança" posicao="meio" onPress={() => navigation.navigate('SenhaSeguranca')} />
         <ItemMenu icone="lock-closed-outline" texto="Privacidade da conta" posicao="meio" onPress={() => avisarEmBreve('Privacidade da conta')} />
         <ItemMenu icone="notifications-outline" texto="Notificações" posicao="ultimo" onPress={() => avisarEmBreve('Notificações')} />
       </View>

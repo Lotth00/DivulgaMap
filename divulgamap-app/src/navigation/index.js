@@ -19,6 +19,8 @@ import DadosPessoaisScreen from '../screens/conta/DadosPessoaisScreen';
 import ContatosScreen from '../screens/conta/ContatosScreen';
 import DataNascimentoScreen from '../screens/conta/DataNascimentoScreen';
 import ExcluirContaScreen from '../screens/conta/ExcluirContaScreen';
+import SenhaSegurancaScreen from '../screens/conta/SenhaSegurancaScreen';
+import TrocarSenhaScreen from '../screens/conta/TrocarSenhaScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -52,6 +54,8 @@ export default function Navigation() {
         <Stack.Screen name="Contatos" component={ContatosScreen} />
         <Stack.Screen name="DataNascimento" component={DataNascimentoScreen} />
         <Stack.Screen name="ExcluirConta" component={ExcluirContaScreen} />
+        <Stack.Screen name="SenhaSeguranca" component={SenhaSegurancaScreen} />
+        <Stack.Screen name="TrocarSenha" component={TrocarSenhaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
