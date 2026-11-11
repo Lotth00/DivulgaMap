@@ -1,0 +1,38 @@
+tags:
+  - name: feedback
+    description: Problemas e sugestões enviados pelo app
+
+paths:
+  /feedback:
+    post:
+      tags: [feedback]
+      summary: Envia um problema ou uma sugestão por e-mail para a equipe
+      description: O e-mail chega no EMAIL_USER do servidor, com o nome e o e-mail de quem enviou para responder.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, mensagem]
+              properties:
+                tipo: { type: string, enum: [problema, sugestao] }
+                mensagem: { type: string, maxLength: 2000 }
+            example:
+              tipo: sugestao
+              mensagem: Teste de sugestão
+      responses:
+        '200':
+          description: Mensagem enviada
+          content:
+            application/json:
+              example: { mensagem: Obrigado! Sua mensagem foi enviada. }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '429':
+          description: Mais de 5 mensagens na última hora
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
