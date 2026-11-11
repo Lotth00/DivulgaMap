@@ -13,6 +13,7 @@ const listasRoutes = require('./routes/listas.routes');
 const salvosRoutes = require('./routes/salvos.routes');
 const horariosRoutes = require('./routes/horarios.routes');
 const categoriasRoutes = require('./routes/categorias.routes');
+const historicoRoutes = require('./routes/historico.routes');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/listas', listasRoutes);
 app.use('/salvos', salvosRoutes);
 app.use('/horarios', horariosRoutes);
 app.use('/categorias', categoriasRoutes);
+app.use('/historico', historicoRoutes);
 
 // Documentação da API (Swagger)
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoApi, {

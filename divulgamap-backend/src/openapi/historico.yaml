@@ -1,0 +1,105 @@
+tags:
+  - name: historico
+    description: Buscas e itens vistos pelo usuário (Recentes e Histórico)
+
+paths:
+  /historico:
+    post:
+      tags: [historico]
+      summary: Registra uma busca ou um item visto
+      description: |
+        Se o mesmo item (ou o mesmo termo, sem diferenciar maiúsculas) já estiver no histórico, o registro antigo é
+        substituído e o item volta para o topo. Cada usuário guarda no máximo os 100 registros mais recentes.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo_acao]
+              properties:
+                tipo_acao: { type: string, enum: [busca, visualizacao] }
+                tipo_item: { type: string, enum: [empresa, produto, promocao], description: Obrigatório na visualização }
+                item_id: { type: integer, description: Obrigatório na visualização }
+                termo: { type: string, maxLength: 100, description: Obrigatório na busca }
+            examples:
+              visualizacao:
+                summary: Item visto
+                value: { tipo_acao: visualizacao, tipo_item: empresa, item_id: 1 }
+              busca:
+                summary: Busca
+                value: { tipo_acao: busca, termo: pão }
+      responses:
+        '201':
+          description: Registro criado
+          content:
+            application/json:
+              example: { id_historico: 1, tipo_acao: visualizacao, tipo_item: empresa, item_id: 1, termo: null, criado_em: "2026-11-10T17:00:00.000Z" }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [historico]
+      summary: Limpa todo o histórico do usuário logado
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Histórico limpo
+          content:
+            application/json:
+              example: { mensagem: Histórico limpo., removidos: 2 }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /historico/meus:
+    get:
+      tags: [historico]
+      summary: Histórico do usuário logado, do mais recente para o mais antigo
+      description: |
+        Itens que sumiram ou cuja empresa não está aprovada não aparecem.
+        `categoria` serve para a imagem padrão quando não há foto; `salvo` indica se o item está numa lista do usuário;
+        `encerrada` só vem em promoções. `criado_em` está em UTC.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: tipo
+          schema: { type: string, enum: [busca, visualizacao] }
+        - in: query
+          name: limite
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Lista do histórico (pode ser vazia)
+          content:
+            application/json:
+              example:
+                - { id_historico: 3, tipo_acao: visualizacao, tipo_item: empresa, item_id: 1, termo: null, criado_em: "2026-11-10T17:00:00.000Z", nome: Padaria São João, foto: null, empresa_id: 1, empresa_nome: null, categoria: Alimentação, encerrada: null, salvo: true }
+                - { id_historico: 2, tipo_acao: busca, tipo_item: null, item_id: null, termo: pão, criado_em: "2026-11-10T16:58:00.000Z", nome: pão, foto: null, empresa_id: null, empresa_nome: null, categoria: null, encerrada: null, salvo: false }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /historico/{id}:
+    delete:
+      tags: [historico]
+      summary: Apaga um registro do histórico (só o dono)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número do registro (id_historico)
+          example: 1
+      responses:
+        '200':
+          description: Registro apagado
+          content:
+            application/json:
+              example: { mensagem: Registro apagado. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
