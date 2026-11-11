@@ -9,6 +9,27 @@ function paraId(valor) {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+// GET protegida — em quais listas do usuário logado um item está salvo
+router.get('/item', verificarToken, async (req, res) => {
+  try {
+    const { tipo_item } = req.query;
+    const itemId = paraId(req.query.item_id);
+    if (!['empresa', 'produto', 'promocao'].includes(tipo_item) || !itemId) {
+      return res.status(400).json({ erro: 'Envie tipo_item ("empresa", "produto" ou "promocao") e item_id.' });
+    }
+    const resultado = await pool.query(
+      `SELECT s.id_salvo, s.lista_id FROM salvos s
+       JOIN listas l ON l.id_lista = s.lista_id
+       WHERE l.usuario_id = $1 AND s.tipo_item = $2 AND s.item_id = $3`,
+      [req.usuario.id, tipo_item, itemId]
+    );
+    return res.json(resultado.rows);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao buscar o item salvo.' });
+  }
+});
+
 // GET protegida — itens salvos dentro de uma lista do usuário logado
 router.get('/lista/:listaId', verificarToken, async (req, res) => {
   try {

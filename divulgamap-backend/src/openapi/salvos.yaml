@@ -3,6 +3,38 @@ tags:
     description: Empresas, produtos e ofertas salvos dentro das listas
 
 paths:
+  /salvos/item:
+    get:
+      tags: [salvos]
+      summary: Em quais listas do usuário logado um item está salvo
+      description: Lista vazia quando o item não está salvo em nenhuma lista.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: tipo_item
+          required: true
+          schema: { type: string, enum: [empresa, produto, promocao] }
+          example: empresa
+        - in: query
+          name: item_id
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        '200':
+          description: Onde o item está salvo
+          content:
+            application/json:
+              example:
+                - { id_salvo: 3, lista_id: 2 }
+        '400':
+          description: tipo_item ou item_id inválidos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /salvos/lista/{listaId}:
     get:
       tags: [salvos]
