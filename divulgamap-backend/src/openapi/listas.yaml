@@ -2,11 +2,16 @@ tags:
   - name: listas
     description: Listas de itens salvos do usuário (ex. Favoritos)
 
+components:
+  parameters:
+    IdLista: { in: path, name: id, required: true, schema: { type: integer }, description: Número da lista (id_lista), example: 1 }
+
 paths:
   /listas/minhas:
     get:
       tags: [listas]
-      summary: Listas do usuário logado
+      summary: Listas do usuário logado, com a quantidade de itens
+      description: Toda conta nova já começa com "Favoritos" e "Lugares salvos".
       security: [{ bearerAuth: [] }]
       responses:
         '200':
@@ -14,9 +19,9 @@ paths:
           content:
             application/json:
               example:
-                - { id_lista: 1, usuario_id: 1, nome: Favoritos, privacidade: privada }
+                - { id_lista: 1, usuario_id: 1, nome: Favoritos, privacidade: privada, total_itens: 2 }
+                - { id_lista: 2, usuario_id: 1, nome: Lugares salvos, privacidade: privada, total_itens: 0 }
         '401': { $ref: '#/components/responses/SemToken' }
-        '403': { $ref: '#/components/responses/Proibido' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /listas:
@@ -32,7 +37,7 @@ paths:
               type: object
               required: [nome]
               properties:
-                nome: { type: string }
+                nome: { type: string, maxLength: 100 }
                 privacidade: { type: string, enum: [privada, publica], default: privada }
             example:
               nome: Mercados
@@ -41,7 +46,53 @@ paths:
           description: Lista criada
           content:
             application/json:
-              example: { id_lista: 2, usuario_id: 1, nome: Mercados, privacidade: privada }
+              example: { id_lista: 3, usuario_id: 1, nome: Mercados, privacidade: privada }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /listas/{id}:
+    put:
+      tags: [listas]
+      summary: Renomeia uma lista (só o dono)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdLista'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nome]
+              properties:
+                nome: { type: string, maxLength: 100 }
+            example:
+              nome: Meus favoritos
+      responses:
+        '200':
+          description: Lista renomeada
+          content:
+            application/json:
+              example: { id_lista: 1, usuario_id: 1, nome: Meus favoritos, privacidade: privada }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+    delete:
+      tags: [listas]
+      summary: Exclui uma lista e os itens dela (só o dono)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdLista'
+      responses:
+        '200':
+          description: Lista excluída
+          content:
+            application/json:
+              example: { mensagem: Lista excluída. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }

@@ -7,6 +7,10 @@ paths:
     get:
       tags: [salvos]
       summary: Itens de uma lista do usuário logado
+      description: |
+        Cada item traz nome, foto e categoria (para a imagem padrão quando não há foto).
+        Em produtos, `empresa_nome` e `empresa_id` são da empresa que vende.
+        Itens de empresas não aprovadas, ou produtos indisponíveis, não aparecem (e não entram no `total_itens` da lista).
       security: [{ bearerAuth: [] }]
       parameters:
         - in: path
@@ -17,24 +21,22 @@ paths:
           example: 1
       responses:
         '200':
-          description: Itens salvos
+          description: Itens salvos, dos mais novos para os mais antigos
           content:
             application/json:
               example:
-                - { id_salvo: 1, lista_id: 1, usuario_id: 1, tipo_item: empresa, item_id: 1 }
+                - { id_salvo: 2, lista_id: 1, tipo_item: produto, item_id: 1, nome: Pão francês, foto: null, empresa_nome: Padaria São João, empresa_id: 1, categoria: Alimentação }
+                - { id_salvo: 1, lista_id: 1, tipo_item: empresa, item_id: 1, nome: Padaria São João, foto: null, empresa_nome: null, empresa_id: 1, categoria: Alimentação }
         '401': { $ref: '#/components/responses/SemToken' }
-        '403':
-          description: Token inválido, ou a lista não existe ou é de outra pessoa
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Erro' }
-              example: { erro: Você não pode ver esta lista. }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /salvos:
     post:
       tags: [salvos]
       summary: Salva uma empresa ou um produto numa lista
+      description: Só empresas aprovadas ou produtos disponíveis de empresas aprovadas.
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -58,16 +60,41 @@ paths:
             application/json:
               example: { id_salvo: 1, lista_id: 1, usuario_id: 1, tipo_item: empresa, item_id: 1 }
         '400':
-          description: Item não encontrado
+          description: tipo_item inválido ou item não encontrado
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
               example: { erro: Item não encontrado. }
         '401': { $ref: '#/components/responses/SemToken' }
-        '403':
-          description: Token inválido, ou a lista não existe ou é de outra pessoa
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '409':
+          description: O item já está nesta lista
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
-              example: { erro: Você não pode adicionar nesta lista. }
+              example: { erro: Este item já está nesta lista. }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /salvos/{id}:
+    delete:
+      tags: [salvos]
+      summary: Remove um item salvo (só o dono)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          description: Número do item salvo (id_salvo)
+          example: 1
+      responses:
+        '200':
+          description: Item removido
+          content:
+            application/json:
+              example: { mensagem: Item removido. }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
