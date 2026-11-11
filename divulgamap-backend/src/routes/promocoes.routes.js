@@ -124,6 +124,54 @@ router.get('/relampago/ativas', async (req, res) => {
 const LIMITE_PADRAO = 20;
 const LIMITE_MAXIMO = 50;
 
+// Campos de uma oferta (lista e detalhe); $1 é sempre o fuso horário
+function consultaOferta(distancia = 'NULL::float8') {
+  return `SELECT
+         p.id_promocao AS id,
+         p.tipo,
+         p.titulo,
+         p.descricao,
+         p.condicao,
+         p.desconto_percentual,
+         to_char(p.data_inicio, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_inicio,
+         to_char(p.data_fim, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_fim,
+         (p.data_inicio <= (NOW() AT TIME ZONE $1) AND p.data_fim >= (NOW() AT TIME ZONE $1)) AS em_vigor,
+         e.id_empresa AS empresa_id,
+         e.nome_fantasia AS empresa_nome,
+         en.endereco,
+         en.bairro,
+         en.latitude,
+         en.longitude,
+         pr.id_produto AS produto_id,
+         pr.nome AS produto_nome,
+         pr.descricao AS produto_descricao,
+         pr.tipo_item,
+         pr.unidade_medida,
+         pr.preco AS preco_original,
+         CASE WHEN pr.preco IS NOT NULL AND p.desconto_percentual IS NOT NULL
+              THEN ROUND(pr.preco * (100 - p.desconto_percentual) / 100, 2)
+         END AS preco_promocional,
+         pr.foto_url AS foto_produto,
+         (SELECT f.url FROM fotos_empresa f
+          WHERE f.empresa_id = e.id_empresa
+          ORDER BY f.ordem, f.id_foto LIMIT 1) AS foto_empresa,
+         COALESCE(cp.nome, (
+           SELECT c.nome FROM empresa_categoria ec
+           JOIN categorias c ON c.id_categoria = ec.categoria_id
+           WHERE ec.empresa_id = e.id_empresa
+           ORDER BY c.nome LIMIT 1
+         )) AS categoria,
+         ${distancia} AS distancia_km
+       FROM promocoes p
+       JOIN empresas e ON e.id_empresa = p.empresa_id
+       LEFT JOIN produtos pr ON pr.id_produto = p.produto_id
+       LEFT JOIN categorias cp ON cp.id_categoria = pr.categoria_id
+       LEFT JOIN LATERAL (
+         SELECT endereco, bairro, latitude, longitude FROM enderecos
+         WHERE empresa_id = e.id_empresa ORDER BY id_endereco LIMIT 1
+       ) en ON TRUE`;
+}
+
 // OFERTAS em vigor agora, de empresas aprovadas (pública)
 router.get('/ativas', async (req, res) => {
   try {
@@ -173,39 +221,7 @@ router.get('/ativas', async (req, res) => {
     valores.push(quantidade);
 
     const resultado = await pool.query(
-      `SELECT
-         p.id_promocao AS id,
-         p.tipo,
-         p.titulo,
-         p.descricao,
-         p.condicao,
-         p.desconto_percentual,
-         to_char(p.data_fim, 'YYYY-MM-DD"T"HH24:MI:SS') AS data_fim,
-         e.id_empresa AS empresa_id,
-         e.nome_fantasia AS empresa_nome,
-         pr.id_produto AS produto_id,
-         pr.nome AS produto_nome,
-         pr.tipo_item,
-         pr.preco AS preco_original,
-         CASE WHEN pr.preco IS NOT NULL AND p.desconto_percentual IS NOT NULL
-              THEN ROUND(pr.preco * (100 - p.desconto_percentual) / 100, 2)
-         END AS preco_promocional,
-         pr.foto_url AS foto_produto,
-         (SELECT f.url FROM fotos_empresa f
-          WHERE f.empresa_id = e.id_empresa
-          ORDER BY f.ordem, f.id_foto LIMIT 1) AS foto_empresa,
-         COALESCE(cp.nome, (
-           SELECT c.nome FROM empresa_categoria ec
-           JOIN categorias c ON c.id_categoria = ec.categoria_id
-           WHERE ec.empresa_id = e.id_empresa
-           ORDER BY c.nome LIMIT 1
-         )) AS categoria,
-         ${distancia} AS distancia_km
-       FROM promocoes p
-       JOIN empresas e ON e.id_empresa = p.empresa_id
-       LEFT JOIN produtos pr ON pr.id_produto = p.produto_id
-       LEFT JOIN categorias cp ON cp.id_categoria = pr.categoria_id
-       LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
+      `${consultaOferta(distancia)}
        WHERE e.status = 'aprovada'
          AND p.data_inicio <= (NOW() AT TIME ZONE $1)
          AND p.data_fim >= (NOW() AT TIME ZONE $1)
@@ -220,6 +236,29 @@ router.get('/ativas', async (req, res) => {
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao buscar ofertas.' });
+  }
+});
+
+// DETALHE de uma oferta (pública), mesmo encerrada: em_vigor diz se ainda vale
+router.get('/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ erro: 'id inválido.' });
+    }
+    const resultado = await pool.query(
+      `${consultaOferta()}
+       WHERE p.id_promocao = $2 AND e.status = 'aprovada'
+         AND (p.produto_id IS NULL OR pr.disponivel = TRUE)`,
+      [FUSO_HORARIO, id]
+    );
+    if (!resultado.rows[0]) {
+      return res.status(404).json({ erro: 'Oferta não encontrada.' });
+    }
+    return res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao buscar a oferta.' });
   }
 });
 

@@ -72,12 +72,20 @@ paths:
                   descricao: null
                   condicao: null
                   desconto_percentual: "20.00"
+                  data_inicio: "2026-10-01T00:00:00"
                   data_fim: "2026-12-31T23:59:00"
+                  em_vigor: true
                   empresa_id: 1
                   empresa_nome: Padaria São João
+                  endereco: Rua Júlio de Castilhos, 2000
+                  bairro: Centro
+                  latitude: "-29.6481206"
+                  longitude: "-50.7809299"
                   produto_id: 1
                   produto_nome: Pão francês
+                  produto_descricao: null
                   tipo_item: produto
+                  unidade_medida: un
                   preco_original: "1.50"
                   preco_promocional: "1.20"
                   foto_produto: null
@@ -90,6 +98,35 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
               example: { erro: 'Tipo inválido. Use "normal", "especial" ou "relampago".' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /promocoes/{id}:
+    get:
+      tags: [promocoes]
+      summary: Detalhe de uma oferta (pública)
+      description: |
+        Mesmos campos de `/promocoes/ativas` (sem `distancia_km`). Também devolve ofertas encerradas
+        ou ainda não iniciadas: `em_vigor` diz se ela vale agora.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        '200':
+          description: A oferta
+        '400':
+          description: id inválido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '404':
+          description: Oferta não existe, empresa não aprovada ou produto indisponível
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: 'Oferta não encontrada.' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /promocoes/relampago/ativas:
