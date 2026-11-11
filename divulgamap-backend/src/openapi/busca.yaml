@@ -1,0 +1,39 @@
+tags:
+  - name: busca
+    description: Busca de produtos e ofertas (as empresas vêm de GET /empresas?busca=)
+
+paths:
+  /busca/itens:
+    get:
+      tags: [busca]
+      summary: Produtos, serviços e ofertas em vigor que combinam com a busca (pública)
+      description: |
+        Tolera erro de digitação e falta de acento. Envie `busca`, `categoria` ou os dois;
+        só entram empresas aprovadas, produtos disponíveis e ofertas em vigor agora (horário de Brasília).
+        Até 20 itens de cada tipo, do mais parecido para o menos.
+      parameters:
+        - in: query
+          name: busca
+          schema: { type: string }
+          example: pao
+        - in: query
+          name: categoria
+          schema: { type: string }
+          example: Alimentação
+      responses:
+        '200':
+          description: Produtos e ofertas encontrados (listas podem ser vazias)
+          content:
+            application/json:
+              example:
+                produtos:
+                  - { id: 1, nome: Pão francês, tipo_item: produto, preco: "1.50", unidade_medida: un, foto: null, empresa_id: 1, empresa_nome: Padaria São João, categoria: Alimentação }
+                ofertas:
+                  - { id: 1, tipo: normal, titulo: Pão com desconto, condicao: null, desconto_percentual: "20.00", produto_nome: Pão francês, tipo_item: produto, preco_promocional: "1.20", foto: null, empresa_id: 1, empresa_nome: Padaria São João, categoria: Alimentação }
+        '400':
+          description: Sem busca e sem categoria, ou busca grande demais
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+              example: { erro: Envie busca ou categoria. }
+        '500': { $ref: '#/components/responses/ErroServidor' }

@@ -3,7 +3,7 @@ const path = require('path');
 const YAML = require('yaml');
 
 // Ordem das seções na página do Swagger
-const ORDEM_DAS_SECOES = ['auth', 'usuarios', 'empresas', 'produtos', 'promocoes', 'avaliacoes', 'listas', 'salvos', 'horarios'];
+const ORDEM_DAS_SECOES = ['auth', 'usuarios', 'empresas', 'produtos', 'promocoes', 'avaliacoes', 'listas', 'salvos', 'horarios', 'busca'];
 
 // Documento OpenAPI base
 const documento = {
