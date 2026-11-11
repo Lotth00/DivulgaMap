@@ -4,11 +4,13 @@ import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import api from '../services/api';
 import colors from '../theme/colors';
 
-const CATEGORIAS = ['Alimentação', 'Moda', 'Bem-Estar', 'Serviços Gerais', 'Tecnologia', 'Construção'];
+// Categorias usadas se GET /categorias falhar
+const CATEGORIAS_PADRAO = ['Alimentação', 'Bem-Estar', 'Construção', 'Moda', 'Serviços Gerais', 'Tecnologia'];
 
 const CENTRO_TAQUARA = { latitude: -29.6494, longitude: -50.7817 };
 const LIMITES_TAQUARA = {
@@ -17,6 +19,13 @@ const LIMITES_TAQUARA = {
   leste: -50.70,
   oeste: -50.86,
 };
+
+function dentroDeTaquara({ latitude, longitude }) {
+  return (
+    latitude <= LIMITES_TAQUARA.norte && latitude >= LIMITES_TAQUARA.sul &&
+    longitude <= LIMITES_TAQUARA.leste && longitude >= LIMITES_TAQUARA.oeste
+  );
+}
 
 const HTML_MAPA = `
 <!DOCTYPE html>
@@ -55,6 +64,10 @@ const HTML_MAPA = `
     var marcadoresAtuais = [];
     var marcadorUsuario = null;
 
+    function enviar(mensagem) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(mensagem));
+    }
+
     function limparMarcadores() {
       marcadoresAtuais.forEach(function (m) { mapa.removeLayer(m); });
       marcadoresAtuais = [];
@@ -68,9 +81,7 @@ const HTML_MAPA = `
           limparMarcadores();
           dados.pontos.forEach(function (ponto) {
             var marcador = L.marker([ponto.latitude, ponto.longitude]).addTo(mapa);
-            if (ponto.titulo) {
-              marcador.bindPopup('<b>' + ponto.titulo + '</b>' + (ponto.descricao ? '<br>' + ponto.descricao : ''));
-            }
+            marcador.on('click', function () { enviar({ tipo: 'TOQUE_PONTO', id: ponto.id }); });
             marcadoresAtuais.push(marcador);
           });
         }
@@ -84,28 +95,30 @@ const HTML_MAPA = `
             fillColor: '#1E90FF',
             fillOpacity: 1,
           }).addTo(mapa);
+          if (dados.centralizar) mapa.setView([dados.latitude, dados.longitude], 16);
         }
       } catch (erro) {
-        // ignora mensagens que não sejam JSON válido
+        // Mensagem que não é JSON
       }
     }
 
-    // Android dispara em 'document', iOS dispara em 'window' — registrando os dois
-    // evita ficar dependendo de qual plataforma está rodando.
+    // Android usa 'document' e iOS usa 'window'
     document.addEventListener('message', receberMensagem);
     window.addEventListener('message', receberMensagem);
 
-    // Avisa o React Native que o mapa já carregou e está pronto para receber dados.
-    window.ReactNativeWebView.postMessage(JSON.stringify({ tipo: 'PRONTO' }));
+    enviar({ tipo: 'PRONTO' });
   </script>
 </body>
 </html>
 `;
 
+// Mapa de Taquara com busca, chips de categoria e menu deslizante
 export default function TelaMapaBase({
   busca, onMudarBusca,
   categoriaSelecionada, onMudarCategoria,
   pontos = [],
+  onTocarPonto,
+  onMudarLocalizacao,
   children,
 }) {
   const insets = useSafeAreaInsets();
@@ -115,18 +128,39 @@ export default function TelaMapaBase({
   const snapPoints = useMemo(() => ['50%', '92%'], []);
   const [mapaPronto, setMapaPronto] = useState(false);
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
+  const [categorias, setCategorias] = useState(CATEGORIAS_PADRAO);
+
+  // Localização: sem GPS, sem permissão ou com erro, o mapa fica em Taquara
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      try {
+        if (!(await Location.hasServicesEnabledAsync())) return;
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+
+        const posicao = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (!ativo || !posicao) return;
+        setLocalizacaoUsuario({ latitude: posicao.coords.latitude, longitude: posicao.coords.longitude });
+      } catch (erro) {
+        console.log('Localização indisponível:', erro?.message);
+      }
+    })();
+    return () => { ativo = false; };
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+    if (localizacaoUsuario) onMudarLocalizacao?.(localizacaoUsuario);
+  }, [localizacaoUsuario]);
 
-      const localizacao = await Location.getCurrentPositionAsync({});
-      setLocalizacaoUsuario({
-        latitude: localizacao.coords.latitude,
-        longitude: localizacao.coords.longitude,
-      });
-    })();
+  // Categorias do banco
+  useEffect(() => {
+    api.get('/categorias')
+      .then((resposta) => {
+        const nomes = resposta.data.map((categoria) => categoria.nome);
+        if (nomes.length) setCategorias(nomes);
+      })
+      .catch(() => {});
   }, []);
 
   const enviarParaMapa = useCallback((mensagem) => {
@@ -140,15 +174,20 @@ export default function TelaMapaBase({
 
   useEffect(() => {
     if (!mapaPronto || !localizacaoUsuario) return;
-    enviarParaMapa({ tipo: 'LOCALIZACAO_USUARIO', ...localizacaoUsuario });
+    enviarParaMapa({
+      tipo: 'LOCALIZACAO_USUARIO',
+      ...localizacaoUsuario,
+      centralizar: dentroDeTaquara(localizacaoUsuario),
+    });
   }, [mapaPronto, localizacaoUsuario, enviarParaMapa]);
 
   function receberMensagemDoMapa(evento) {
     try {
       const dados = JSON.parse(evento.nativeEvent.data);
       if (dados.tipo === 'PRONTO') setMapaPronto(true);
+      if (dados.tipo === 'TOQUE_PONTO') onTocarPonto?.(dados.id);
     } catch (erro) {
-      
+      // Mensagem que não é JSON
     }
   }
 
@@ -177,7 +216,7 @@ export default function TelaMapaBase({
         </LinearGradient>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtros}>
-          {CATEGORIAS.map((categoria) => (
+          {categorias.map((categoria) => (
             <TouchableOpacity
               key={categoria}
               activeOpacity={1}
@@ -187,14 +226,19 @@ export default function TelaMapaBase({
               <Text style={styles.textoChip}>{categoria}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity activeOpacity={1} style={styles.chip}>
-            <Text style={styles.textoChip}>··· Mais</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
 
-      <BottomSheet ref={bottomSheetRef} index={0} snapPoints={snapPoints} handleIndicatorStyle={styles.alcaArrastar}>
-        <BottomSheetView style={styles.folhaConteudo}>{children}</BottomSheetView>
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        handleIndicatorStyle={styles.alcaArrastar}
+        backgroundStyle={styles.fundoFolha}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.folhaConteudo} showsVerticalScrollIndicator={false}>
+          {children}
+        </BottomSheetScrollView>
       </BottomSheet>
     </View>
   );
@@ -218,6 +262,7 @@ const styles = StyleSheet.create({
   },
   chipSelecionado: { backgroundColor: colors.gradienteBase, borderColor: colors.gradienteBase },
   textoChip: { fontFamily: 'Poppins_500Medium', fontSize: 13 },
-  alcaArrastar: { backgroundColor: '#D0D0D0', width: 44 },
-  folhaConteudo: { flex: 1, paddingHorizontal: 33 },
+  alcaArrastar: { backgroundColor: colors.pretoTexto, width: 64, height: 4 },
+  fundoFolha: { backgroundColor: colors.fundoTela, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  folhaConteudo: { paddingHorizontal: 20, paddingBottom: 40 },
 });
