@@ -18,6 +18,28 @@ paths:
                 - { id_produto: 1, empresa_id: 1, tipo_item: produto, nome: Pão francês, preco: "1.50", unidade_medida: un, disponivel: true, categoria_nome: Alimentação }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
+  /produtos/servicos-proximos:
+    get:
+      tags: [produtos]
+      summary: Serviços de empresas aprovadas, com nota, foto e oferta ativa (pública)
+      description: |
+        Com `lat` e `lng`, vem `distancia_km` e a lista vai do mais perto para o mais longe.
+        `forma_cobranca`: `preco` (mostra preço e unidade), `sob_consulta` ou `orcamento_gratuito` (sem preço).
+        `foto` é a do serviço (sem ela, `null`). Até 20 itens.
+      parameters:
+        - { in: query, name: lat, schema: { type: number } }
+        - { in: query, name: lng, schema: { type: number } }
+        - { in: query, name: categoria, schema: { type: string }, example: Bem-Estar }
+      responses:
+        '200':
+          description: Lista de serviços
+          content:
+            application/json:
+              example:
+                - { id_produto: 13, nome: Hidratação, preco: "80.00", unidade_medida: sessão, forma_cobranca: preco, empresa_id: 4, empresa_nome: Cabeleireira Leila, nota_media: "0.00", total_avaliacoes: 0, foto: null, bairro: Centro, categoria: Bem-Estar, oferta_id: null, desconto_percentual: null, condicao: null, preco_promocional: null, distancia_km: null }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /produtos:
     post:
       tags: [produtos]
@@ -36,7 +58,8 @@ paths:
                 nome: { type: string }
                 categoria_id: { type: integer, nullable: true }
                 descricao: { type: string }
-                preco: { type: number }
+                preco: { type: number, description: Obrigatório quando forma_cobranca é preco }
+                forma_cobranca: { type: string, enum: [preco, sob_consulta, orcamento_gratuito], default: preco }
                 unidade_medida: { type: string, default: un }
                 foto_url: { type: string, nullable: true, description: URL da foto do produto }
             example:
@@ -119,7 +142,8 @@ paths:
               type: object
               properties:
                 nome: { type: string, maxLength: 150 }
-                preco: { type: number, exclusiveMinimum: true, minimum: 0 }
+                preco: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0 }
+                forma_cobranca: { type: string, enum: [preco, sob_consulta, orcamento_gratuito] }
                 tipo_item: { type: string, enum: [produto, servico] }
                 unidade_medida: { type: string, maxLength: 20 }
                 descricao: { type: string, nullable: true }

@@ -158,11 +158,15 @@ router.get('/', async (req, res) => {
         e.site,
         e.google_maps_url,
         e.nota_media,
+        e.total_avaliacoes,
+        e.foto_perfil_url,
         en.endereco,
         en.bairro,
         en.latitude,
         en.longitude,
-        STRING_AGG(DISTINCT c.nome, ', ') AS categorias
+        STRING_AGG(DISTINCT c.nome, ', ') AS categorias,
+        ARRAY(SELECT f.url FROM fotos_empresa f WHERE f.empresa_id = e.id_empresa
+              ORDER BY f.ordem, f.id_foto LIMIT 2) AS fotos
       FROM empresas e
       LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
       LEFT JOIN empresa_categoria ec ON ec.empresa_id = e.id_empresa
@@ -272,7 +276,7 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     const resultado = await pool.query(
       `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site,
-              e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro,
+              e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro, e.foto_perfil_url,
               en.endereco, en.bairro, en.referencia, en.latitude, en.longitude
        FROM empresas e
        LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
@@ -431,8 +435,9 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
       endereco: textoOpcional(corpo.endereco, 255),
       bairro: textoOpcional(corpo.bairro, 100),
       referencia: textoOpcional(corpo.referencia, 150),
+      foto_perfil_url: textoOpcional(corpo.foto_perfil_url, 500),
     };
-    const LIMITES = { telefone: 20, site: 255, google_maps_url: 500, endereco: 255, bairro: 100, referencia: 150 };
+    const LIMITES = { telefone: 20, site: 255, google_maps_url: 500, endereco: 255, bairro: 100, referencia: 150, foto_perfil_url: 500 };
     for (const [campo, resultado] of Object.entries(campos)) {
       if (resultado.erro) return res.status(400).json({ erro: `${campo} pode ter até ${LIMITES[campo]} caracteres.` });
     }
@@ -457,7 +462,8 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
         site = CASE WHEN $4 THEN $5 ELSE site END,
         google_maps_url = CASE WHEN $6 THEN $7 ELSE google_maps_url END,
         descricao = COALESCE($8, descricao),
-        nome_fantasia = COALESCE($9, nome_fantasia)
+        nome_fantasia = COALESCE($9, nome_fantasia),
+        foto_perfil_url = CASE WHEN $11 THEN $12 ELSE foto_perfil_url END
        WHERE id_empresa = $10
        RETURNING *`,
       [
@@ -466,6 +472,7 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
         contato('site') !== undefined, contato('site') ?? null,
         contato('google_maps_url') !== undefined, contato('google_maps_url') ?? null,
         descricao ?? null, nome ?? null, id,
+        contato('foto_perfil_url') !== undefined, contato('foto_perfil_url') ?? null,
       ]
     );
 
@@ -756,6 +763,23 @@ router.post('/:id/fotos', verificarToken, verificarDonoEmpresa, async (req, res)
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao salvar foto.' });
+  }
+});
+
+// Remove uma foto do ambiente (só o dono)
+router.delete('/:id/fotos/:fotoId', verificarToken, verificarDonoEmpresa, async (req, res) => {
+  try {
+    const fotoId = idValido(req.params.fotoId);
+    const removida = fotoId
+      ? await pool.query('DELETE FROM fotos_empresa WHERE id_foto = $1 AND empresa_id = $2 RETURNING id_foto', [fotoId, req.empresa.id_empresa])
+      : { rows: [] };
+    if (!removida.rows[0]) {
+      return res.status(404).json({ erro: 'Foto não encontrada.' });
+    }
+    return res.json({ mensagem: 'Foto removida.' });
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao remover a foto.' });
   }
 });
 

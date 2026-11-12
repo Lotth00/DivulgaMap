@@ -1199,3 +1199,21 @@ ALTER TABLE public.usuarios
 --
 
 ALTER TABLE public.enderecos ADD COLUMN IF NOT EXISTS referencia character varying(150);
+
+--
+-- Foto de perfil (logo) da empresa, separada das fotos do ambiente
+--
+
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS foto_perfil_url character varying(500);
+
+--
+-- Forma de cobrança do item: com preço, sob consulta ou orçamento gratuito
+--
+
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS forma_cobranca character varying(20) DEFAULT 'preco' NOT NULL;
+ALTER TABLE public.produtos DROP CONSTRAINT IF EXISTS produtos_forma_cobranca_check;
+ALTER TABLE public.produtos
+  ADD CONSTRAINT produtos_forma_cobranca_check CHECK (
+    forma_cobranca IN ('preco', 'sob_consulta', 'orcamento_gratuito')
+    AND (forma_cobranca <> 'preco' OR preco IS NOT NULL));
+ALTER TABLE public.produtos ALTER COLUMN preco DROP NOT NULL;

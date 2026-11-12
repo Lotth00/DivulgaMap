@@ -227,6 +227,7 @@ paths:
                 endereco: { type: string }
                 bairro: { type: string }
                 referencia: { type: string, maxLength: 150, description: Ponto de referência (opcional) }
+                foto_perfil_url: { type: string, maxLength: 500, description: Foto de perfil (logo); vazio apaga }
                 telefone: { type: string }
                 site: { type: string }
                 google_maps_url: { type: string }
@@ -490,6 +491,21 @@ paths:
           content:
             application/json:
               example: { id_foto: 1, empresa_id: 1, url: https://picsum.photos/600/400, ordem: 0 }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/fotos/{fotoId}:
+    delete:
+      tags: [empresas]
+      summary: Remove uma foto do ambiente (só o dono)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+        - { in: path, name: fotoId, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: Foto removida }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
