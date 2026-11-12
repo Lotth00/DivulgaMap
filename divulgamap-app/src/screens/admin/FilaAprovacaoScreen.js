@@ -236,6 +236,11 @@ export default function FilaAprovacaoScreen({ navigation }) {
       falhou={falhou}
       onTentarDeNovo={carregar}
     >
+      <TouchableOpacity onPress={() => navigation.navigate('RegistroAtividades')} style={styles.atalhoRegistro} activeOpacity={0.7}>
+        <Ionicons name="document-text-outline" size={20} color={colors.pretoTexto} />
+        <Text style={styles.textoAtalho}>Registro de atividades</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.pretoTexto} />
+      </TouchableOpacity>
       <AbasPromocoes abas={abas} selecionada={aba} onSelecionar={setAba} />
 
       {aba === 'empresas' && (empresas.length === 0
@@ -279,6 +284,11 @@ export default function FilaAprovacaoScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  atalhoRegistro: {
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: colors.bordaClara, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16, backgroundColor: colors.brancoFundo,
+  },
+  textoAtalho: { ...tipografia.corpo, color: colors.pretoTexto, flex: 1, marginLeft: 10 },
   cartao: { borderWidth: 1.5, borderColor: colors.bordaClara, borderRadius: 14, padding: 14, marginBottom: 14, backgroundColor: colors.brancoFundo },
   topo: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   topoTexto: { flex: 1, marginLeft: 12 },

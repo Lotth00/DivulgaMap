@@ -45,6 +45,8 @@ import HistoricoScreen from '../screens/conta/HistoricoScreen';
 import AjudaFeedbackScreen from '../screens/conta/AjudaFeedbackScreen';
 import AjudaScreen from '../screens/conta/AjudaScreen';
 import FeedbackScreen from '../screens/conta/FeedbackScreen';
+import AtividadeScreen from '../screens/conta/AtividadeScreen';
+import RegistroAtividadesScreen from '../screens/admin/RegistroAtividadesScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -104,6 +106,8 @@ export default function Navigation() {
         <Stack.Screen name="AjudaFeedback" component={AjudaFeedbackScreen} />
         <Stack.Screen name="Ajuda" component={AjudaScreen} />
         <Stack.Screen name="Feedback" component={FeedbackScreen} />
+        <Stack.Screen name="Atividade" component={AtividadeScreen} />
+        <Stack.Screen name="RegistroAtividades" component={RegistroAtividadesScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -34,7 +34,7 @@ export default function SenhaSegurancaScreen({ navigation }) {
         <Opcao texto="Alterar senha" onPress={() => navigation.navigate('TrocarSenha')} />
         <Opcao texto="Autenticação aprimorada" desativada />
         <Opcao texto="Login salvo" desativada />
-        <Opcao texto="Onde você fez login" desativada />
+        <Opcao texto="Atividade recente" onPress={() => navigation.navigate('Atividade')} />
       </CaixaGradiente>
     </TelaConta>
   );
