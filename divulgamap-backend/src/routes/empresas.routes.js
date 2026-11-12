@@ -133,6 +133,7 @@ router.get('/', async (req, res) => {
       CROSS JOIN LATERAL (
         SELECT GREATEST(
           ${pontuacaoDaBusca('e.nome_fantasia', termo)},
+          COALESCE(${pontuacaoDaBusca('e.ramo', termo)}, 0),
           COALESCE((
             SELECT MAX(${pontuacaoDaBusca('c3.nome', termo)})
             FROM empresa_categoria ec3
@@ -152,6 +153,7 @@ router.get('/', async (req, res) => {
       SELECT
         e.id_empresa,
         e.nome_fantasia,
+        e.ramo,
         e.tipo,
         e.descricao,
         e.telefone,
@@ -232,7 +234,7 @@ router.get('/rascunho-atual', verificarToken, async (req, res) => {
 router.get('/pendentes', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site, e.foto_perfil_url,
+      `SELECT e.id_empresa, e.nome_fantasia, e.ramo, e.tipo, e.descricao, e.telefone, e.site, e.foto_perfil_url,
               e.verificado_em, e.metodo_verificacao, e.data_cadastro, e.enviada_para_aprovacao_em,
               en.endereco, en.bairro, en.referencia,
               u.nome AS dono_nome, u.email AS dono_email,
@@ -292,7 +294,7 @@ router.get('/minhas', verificarToken, async (req, res) => {
 // Detalhe completo da empresa (só aprovada, ou em qualquer situação) ou null
 async function detalheEmpresa(id, apenasAprovada = true) {
   const resultado = await pool.query(
-    `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site, e.status, e.motivo_rejeicao,
+    `SELECT e.id_empresa, e.nome_fantasia, e.ramo, e.tipo, e.descricao, e.telefone, e.site, e.status, e.motivo_rejeicao,
             e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro, e.foto_perfil_url,
             en.endereco, en.bairro, en.referencia, en.latitude, en.longitude
      FROM empresas e
@@ -383,6 +385,10 @@ router.post('/rascunho', verificarToken, async (req, res) => {
   if (!categorias.length) {
     return res.status(400).json({ erro: 'Escolha pelo menos uma categoria.' });
   }
+  const ramo = textoOpcional(req.body?.ramo, 60);
+  if (ramo.erro) {
+    return res.status(400).json({ erro: 'O ramo pode ter até 60 letras.' });
+  }
 
   const cliente = await pool.connect();
   try {
@@ -394,9 +400,9 @@ router.post('/rascunho', verificarToken, async (req, res) => {
     // Empresa e categorias juntas (tudo ou nada)
     await cliente.query('BEGIN');
     const novaEmpresa = await cliente.query(
-      `INSERT INTO empresas (id_usuario, nome_fantasia, status)
-       VALUES ($1, $2, 'rascunho') RETURNING *`,
-      [req.usuario.id, nome]
+      `INSERT INTO empresas (id_usuario, nome_fantasia, ramo, status)
+       VALUES ($1, $2, $3, 'rascunho') RETURNING *`,
+      [req.usuario.id, nome, ramo.valor ?? null]
     );
     const empresa = novaEmpresa.rows[0];
     for (const idCategoria of ids) {
@@ -474,8 +480,9 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
       bairro: textoOpcional(corpo.bairro, 100),
       referencia: textoOpcional(corpo.referencia, 150),
       foto_perfil_url: textoOpcional(corpo.foto_perfil_url, 500),
+      ramo: textoOpcional(corpo.ramo, 60),
     };
-    const LIMITES = { telefone: 20, site: 255, google_maps_url: 500, endereco: 255, bairro: 100, referencia: 150, foto_perfil_url: 500 };
+    const LIMITES = { telefone: 20, site: 255, google_maps_url: 500, endereco: 255, bairro: 100, referencia: 150, foto_perfil_url: 500, ramo: 60 };
     for (const [campo, resultado] of Object.entries(campos)) {
       if (resultado.erro) return res.status(400).json({ erro: `${campo} pode ter até ${LIMITES[campo]} caracteres.` });
     }
@@ -501,7 +508,8 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
         google_maps_url = CASE WHEN $6 THEN $7 ELSE google_maps_url END,
         descricao = COALESCE($8, descricao),
         nome_fantasia = COALESCE($9, nome_fantasia),
-        foto_perfil_url = CASE WHEN $11 THEN $12 ELSE foto_perfil_url END
+        foto_perfil_url = CASE WHEN $11 THEN $12 ELSE foto_perfil_url END,
+        ramo = CASE WHEN $13 THEN $14 ELSE ramo END
        WHERE id_empresa = $10
        RETURNING *`,
       [
@@ -511,6 +519,7 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
         contato('google_maps_url') !== undefined, contato('google_maps_url') ?? null,
         descricao ?? null, nome ?? null, id,
         contato('foto_perfil_url') !== undefined, contato('foto_perfil_url') ?? null,
+        contato('ramo') !== undefined, contato('ramo') ?? null,
       ]
     );
 

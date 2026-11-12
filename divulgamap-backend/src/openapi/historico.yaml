@@ -53,6 +53,23 @@ paths:
         '401': { $ref: '#/components/responses/SemToken' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
+  /historico/interesses:
+    get:
+      tags: [historico]
+      summary: Interesses da pessoa logada, para ordenar as seções do Explorar
+      description: |
+        Soma o que a pessoa viu (peso 1), salvou (peso 3) e avaliou com 4 ou 5 estrelas (peso 2); cada sinal vale
+        metade a cada 30 dias. Devolve categorias e empresas com pesos de 0 a 1 (1 = a de maior interesse).
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Pesos por categoria e por empresa (id)
+          content:
+            application/json:
+              example: { categorias: { Alimentação: 1, Beleza: 0.35 }, empresas: { '1': 1, '4': 0.2 } }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /historico/meus:
     get:
       tags: [historico]

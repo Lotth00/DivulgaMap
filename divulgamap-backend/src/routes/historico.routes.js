@@ -100,6 +100,72 @@ router.post('/', verificarToken, async (req, res) => {
 });
 
 // GET — histórico do usuário logado, do mais recente para o mais antigo
+// Pesos dos sinais de interesse e quanto tempo até um sinal valer metade (dias)
+const PESO_VISTO = 1;
+const PESO_SALVO = 3;
+const PESO_BEM_AVALIADO = 2;
+const MEIA_VIDA_DIAS = 30;
+
+// Interesses da pessoa: categorias e empresas que ela viu, salvou ou avaliou bem (recentes valem mais), de 0 a 1
+router.get('/interesses', verificarToken, async (req, res) => {
+  try {
+    const sinais = `
+      WITH eventos AS (
+        SELECT CASE h.tipo_item WHEN 'empresa' THEN h.item_id WHEN 'produto' THEN p.empresa_id ELSE pm.empresa_id END AS empresa_id,
+               COALESCE(p.categoria_id, pp.categoria_id) AS categoria_id, $2::float8 AS peso, h.criado_em AS quando
+        FROM historico h
+        LEFT JOIN produtos p ON h.tipo_item = 'produto' AND p.id_produto = h.item_id
+        LEFT JOIN promocoes pm ON h.tipo_item = 'promocao' AND pm.id_promocao = h.item_id
+        LEFT JOIN produtos pp ON pp.id_produto = pm.produto_id
+        WHERE h.usuario_id = $1 AND h.tipo_acao = 'visualizacao'
+        UNION ALL
+        SELECT CASE s.tipo_item WHEN 'empresa' THEN s.item_id WHEN 'produto' THEN p.empresa_id ELSE pm.empresa_id END,
+               COALESCE(p.categoria_id, pp.categoria_id), $3::float8, s.criado_em
+        FROM salvos s
+        LEFT JOIN produtos p ON s.tipo_item = 'produto' AND p.id_produto = s.item_id
+        LEFT JOIN promocoes pm ON s.tipo_item = 'promocao' AND pm.id_promocao = s.item_id
+        LEFT JOIN produtos pp ON pp.id_produto = pm.produto_id
+        WHERE s.usuario_id = $1
+        UNION ALL
+        SELECT a.empresa_id, NULL, $4::float8, COALESCE(a.editado_em, a.criado_em)
+        FROM avaliacoes a WHERE a.usuario_id = $1 AND a.nota >= 4
+      ),
+      pesados AS (
+        SELECT empresa_id, categoria_id,
+               peso * POWER(0.5, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - quando)) / 86400) / $5) AS valor
+        FROM eventos WHERE empresa_id IS NOT NULL
+      )`;
+    const valores = [req.usuario.id, PESO_VISTO, PESO_SALVO, PESO_BEM_AVALIADO, MEIA_VIDA_DIAS];
+    const [categorias, empresas] = await Promise.all([
+      pool.query(
+        `${sinais}
+         SELECT c.nome, SUM(x.valor)::float8 AS peso
+         FROM (
+           SELECT categoria_id, valor FROM pesados WHERE categoria_id IS NOT NULL
+           UNION ALL
+           SELECT ec.categoria_id, ps.valor FROM pesados ps
+           JOIN empresa_categoria ec ON ec.empresa_id = ps.empresa_id
+           WHERE ps.categoria_id IS NULL
+         ) x
+         JOIN categorias c ON c.id_categoria = x.categoria_id
+         GROUP BY c.nome`,
+        valores
+      ),
+      pool.query(`${sinais} SELECT empresa_id, SUM(valor)::float8 AS peso FROM pesados GROUP BY empresa_id`, valores),
+    ]);
+
+    // De 0 a 1, em relação ao maior
+    const normalizar = (linhas, chave) => {
+      const maior = Math.max(0, ...linhas.map((l) => l.peso));
+      return Object.fromEntries(linhas.map((l) => [l[chave], maior ? Math.round((l.peso / maior) * 100) / 100 : 0]));
+    };
+    return res.json({ categorias: normalizar(categorias.rows, 'nome'), empresas: normalizar(empresas.rows, 'empresa_id') });
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao calcular os interesses.' });
+  }
+});
+
 router.get('/meus', verificarToken, async (req, res) => {
   try {
     const { tipo, limite } = req.query;

@@ -19,7 +19,7 @@ paths:
           content:
             application/json:
               example:
-                - { id_avaliacao: 1, usuario_id: 1, empresa_id: 1, nota: 4, comentario: Muito bom, usuario_nome: Teste, fotos: ["https://exemplo.com/foto.jpg"] }
+                - { id_avaliacao: 1, usuario_id: 1, empresa_id: 1, nota: 4, comentario: Muito bom, usuario_nome: Teste, usuario_foto: null, fotos: ["https://exemplo.com/foto.jpg"] }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
   /avaliacoes:

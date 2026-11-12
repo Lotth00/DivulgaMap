@@ -129,7 +129,7 @@ paths:
                 total_avaliacoes: 1
                 total_fotos: 1
                 avaliacoes:
-                  - { id_avaliacao: 1, empresa_id: 1, empresa_nome: Padaria São João, nota: 5, comentario: Ótimo pão, criado_em: "2026-11-10T17:00:00.000Z", editado_em: null, fotos: ["https://exemplo.com/foto.jpg"] }
+                  - { id_avaliacao: 1, empresa_id: 1, empresa_nome: Padaria São João, empresa_categoria: Alimentação, nota: 5, comentario: Ótimo pão, criado_em: "2026-11-10T17:00:00.000Z", editado_em: null, fotos: ["https://exemplo.com/foto.jpg"] }
                 fotos:
                   - { id_foto: 1, url: "https://exemplo.com/foto.jpg", avaliacao_id: 1, empresa_id: 1, empresa_nome: Padaria São João, criado_em: "2026-11-10T17:00:00.000Z" }
         '401': { $ref: '#/components/responses/SemToken' }

@@ -70,7 +70,7 @@ router.get('/empresa/:empresaId', async (req, res) => {
       return res.json([]);
     }
     const resultado = await pool.query(
-      `SELECT a.*, u.nome AS usuario_nome, u.conta_privada AS usuario_conta_privada,
+      `SELECT a.*, u.nome AS usuario_nome, u.foto_perfil_url AS usuario_foto, u.conta_privada AS usuario_conta_privada,
               COALESCE((SELECT json_agg(f.url ORDER BY f.ordem, f.id_foto)
                         FROM fotos_avaliacao f WHERE f.avaliacao_id = a.id_avaliacao), '[]') AS fotos
        FROM avaliacoes a

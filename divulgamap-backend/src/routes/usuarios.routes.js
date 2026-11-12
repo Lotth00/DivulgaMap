@@ -99,6 +99,8 @@ async function montarPerfil(usuarioId) {
       pool.query(
         `SELECT a.id_avaliacao, a.empresa_id, e.nome_fantasia AS empresa_nome, a.nota, a.comentario,
                 a.criado_em, a.editado_em,
+                COALESCE(e.ramo, (SELECT c.nome FROM empresa_categoria ec JOIN categorias c ON c.id_categoria = ec.categoria_id
+                 WHERE ec.empresa_id = e.id_empresa ORDER BY c.nome LIMIT 1)) AS empresa_categoria,
                 COALESCE((SELECT json_agg(f.url ORDER BY f.ordem, f.id_foto)
                           FROM fotos_avaliacao f WHERE f.avaliacao_id = a.id_avaliacao), '[]') AS fotos
          FROM avaliacoes a

@@ -9,6 +9,7 @@ components:
       properties:
         id_empresa: { type: integer, example: 1 }
         nome_fantasia: { type: string, example: Padaria São João }
+        ramo: { type: string, nullable: true, maxLength: 60, example: Padaria, description: 'O que a empresa é, em texto livre (ex.: Lanchonete, Salão de beleza)' }
         tipo: { type: string, enum: [comercio, servico, ambos], example: comercio }
         descricao: { type: string, example: Pães e doces }
         telefone: { type: string, example: "51999990000" }
@@ -27,6 +28,7 @@ components:
         id_empresa: { type: integer, example: 1 }
         id_usuario: { type: integer, example: 2 }
         nome_fantasia: { type: string, example: Padaria São João }
+        ramo: { type: string, nullable: true, maxLength: 60, example: Padaria, description: 'O que a empresa é, em texto livre (ex.: Lanchonete, Salão de beleza)' }
         tipo: { type: string, enum: [comercio, servico, ambos] }
         telefone: { type: string, nullable: true }
         site: { type: string, nullable: true }
@@ -45,6 +47,7 @@ components:
           properties:
             id_empresa: { type: integer, example: 1 }
             nome_fantasia: { type: string, example: Padaria São João }
+            ramo: { type: string, nullable: true, maxLength: 60, example: Padaria, description: 'O que a empresa é, em texto livre (ex.: Lanchonete, Salão de beleza)' }
             tipo: { type: string, enum: [comercio, servico, ambos] }
             descricao: { type: string, nullable: true }
             telefone: { type: string, nullable: true }
@@ -221,6 +224,7 @@ paths:
               type: object
               properties:
                 nome_fantasia: { type: string, maxLength: 150 }
+                ramo: { type: string, maxLength: 60, description: 'O que a empresa é (ex.: Lanchonete); vazio apaga' }
                 categorias: { type: array, items: { type: string }, example: [Alimentação] }
                 tipo: { type: string, enum: [comercio, servico, ambos] }
                 endereco: { type: string }
@@ -315,12 +319,14 @@ paths:
               required: [nome_fantasia]
               properties:
                 nome_fantasia: { type: string }
+                ramo: { type: string, maxLength: 60, description: 'O que a empresa é (ex.: Lanchonete), opcional' }
                 categorias:
                   type: array
                   description: Nomes das categorias (os que não existirem são ignorados)
                   items: { type: string }
             example:
               nome_fantasia: Padaria São João
+              ramo: Padaria
               categorias: [Alimentação]
       responses:
         '201':
