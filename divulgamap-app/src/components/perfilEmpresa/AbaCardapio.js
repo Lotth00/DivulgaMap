@@ -56,7 +56,10 @@ export default function AbaCardapio({ produtos, ofertas, categoriaEmpresa, rotul
                       <Text style={styles.riscado}>{formatarPreco(produto.preco, produto.unidade_medida)}</Text>
                     </View>
                   ) : (
-                    <Text style={styles.precoNormal}>{formatarPreco(produto.preco, produto.unidade_medida)}</Text>
+                    <Text style={styles.precoNormal}>
+                      {formatarPreco(produto.preco, produto.unidade_medida)
+                        ?? (produto.forma_cobranca === 'orcamento_gratuito' ? 'Orçamento gratuito' : 'Valor sob consulta')}
+                    </Text>
                   )}
                   {oferta && (
                     <View style={styles.selo}>

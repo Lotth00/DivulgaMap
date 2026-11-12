@@ -13,6 +13,7 @@ import EstadoVazio from '../components/EstadoVazio';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
 import ModalSalvar from '../components/ModalSalvar';
 import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
+import MenuPopup from '../components/MenuPopup';
 import colors from '../theme/colors';
 import tipografia, { fontes, fs } from '../theme/tipografia';
 
@@ -70,6 +71,7 @@ export default function OfertaScreen({ route, navigation }) {
   const [salvo, setSalvo] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [pedirLogin, setPedirLogin] = useState(false);
+  const [menu, setMenu] = useState(false);
   const { width } = useWindowDimensions();
   const [oferta, setOferta] = useState(ofertaInicial ?? null);
   const [carregando, setCarregando] = useState(!ofertaInicial);
@@ -149,9 +151,6 @@ export default function OfertaScreen({ route, navigation }) {
           </View>
           <TouchableOpacity onPress={abrirEmpresa} style={styles.linkEmpresaTopo}>
             <Text style={styles.textoLinkEmpresa} numberOfLines={1}>{oferta.empresa_nome}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={abrirSalvar} style={styles.salvar} accessibilityLabel={salvo ? 'Salvo nas suas listas' : 'Salvar'}>
-            <Ionicons name={salvo ? 'bookmark' : 'bookmark-outline'} size={26} color={colors.pretoTexto} />
           </TouchableOpacity>
         </View>
 
@@ -260,8 +259,17 @@ export default function OfertaScreen({ route, navigation }) {
   return (
     <View style={styles.tela}>
       <StatusBar style="dark" />
-      <Cabecalho onVoltar={() => navigation.goBack()} />
+      <Cabecalho onVoltar={() => navigation.goBack()} onMenu={oferta ? () => setMenu(true) : undefined} />
       {conteudo}
+
+      <MenuPopup
+        visivel={menu}
+        opcoes={[
+          { texto: salvo ? 'Salva nas suas listas' : 'Salvar', onPress: abrirSalvar },
+          { texto: 'Ver empresa', onPress: abrirEmpresa },
+        ]}
+        onFechar={() => setMenu(false)}
+      />
 
       <ModalSalvar
         visivel={salvando}
@@ -288,7 +296,6 @@ const styles = StyleSheet.create({
   rotulo: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 2, marginRight: 10 },
   textoRotulo: { fontFamily: fontes.media, includeFontPadding: false, fontSize: fs(13), color: colors.pretoTexto },
   linkEmpresaTopo: { flex: 1 },
-  salvar: { padding: 4, marginLeft: 8 },
   textoLinkEmpresa: { ...tipografia.legenda, color: colors.azulLink },
   nome: { ...tipografia.tituloTela, fontSize: fs(20), color: colors.pretoTexto, marginTop: 8 },
   subtitulo: { ...tipografia.legenda, color: colors.textoSecundario },
