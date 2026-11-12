@@ -1,97 +1,35 @@
 # DivulgaMap
 
-Aplicativo de descoberta de negócios locais de Taquara/RS. TCC — [seu nome aqui].
+Aplicativo mobile para descobrir empresas, produtos e ofertas de Taquara/RS. Trabalho de Conclusão de Curso — Maria Luiza Altenhofen Loth.
 
-Este repositório contém as duas partes do projeto:
+O repositório tem duas partes:
 
-- **`divulgamap-backend/`** — API REST (Node.js + Express + PostgreSQL)
-- **`divulgamap-app/`** — aplicativo mobile (React Native + Expo)
+- **`divulgamap-backend/`** — API REST (Node.js, Express, PostgreSQL)
+- **`divulgamap-app/`** — aplicativo Android (React Native, Expo)
 
-## Ambiente em produção (homologação)
+## Para testar
 
 | Recurso | Link |
 |---|---|
-| API (backend) | `https://SUBSTITUIR.onrender.com` |
-| APK para instalação (Android) | `https://SUBSTITUIR-link-do-eas-build` |
-| QR Code de instalação | ver Dossiê de Recursos e Artefatos |
+| API em produção | https://divulgamap.onrender.com |
+| Documentação da API (Swagger) | https://divulgamap.onrender.com/docs |
+| APK para instalar (Android) | https://lotth00-divulgamap-site.vercel.app/ |
 
-> O aplicativo já vem configurado para falar com a API de produção acima —
-> **não é necessário estar na mesma rede Wi-Fi nem trocar nenhum IP** para testar.
+O app já aponta para a API em produção: não precisa de Wi-Fi em comum nem de configurar IP.
+A API fica hospedada em plano gratuito e pode levar cerca de 1 minuto para responder na primeira chamada.
 
-## Credenciais de teste
+## Funcionalidades
 
-| Perfil | E-mail | Senha |
-|---|---|---|
-| Administrador | `SUBSTITUIR` | `SUBSTITUIR` |
-| Usuário comum | `SUBSTITUIR` | `SUBSTITUIR` |
+- Mapa com empresas por categoria e busca tolerante a erros e acentos
+- Perfil da empresa: horários, produtos, ofertas e avaliações
+- Cadastro, login e recuperação de senha por e-mail
+- Favoritos, listas e histórico
+- Painel do empresário (empresa, produtos, ofertas e anúncios) e perfil de administrador
 
-## 🗄️ Banco de dados
+## Tecnologias
 
-O script de criação das tabelas está em [`divulgamap-backend/schema.sql`](./divulgamap-backend/schema.sql).
-Para recriar o banco do zero:
-
-```bash
-psql "<connection-string-do-postgres>" -f divulgamap-backend/schema.sql
-```
-
-## Rodando localmente
-
-### Backend
-
-```bash
-cd divulgamap-backend
-npm install
-cp .env.example .env   # preencha com suas próprias credenciais de banco
-npm run dev
-```
-
-Variáveis de ambiente necessárias (`.env`):
-
-```
-PORT=3000
-DB_USER=
-DB_PASSWORD=
-DB_HOST=
-DB_PORT=5432
-DB_NAME=
-JWT_SECRET=
-EMAIL_USER=
-EMAIL_SENHA_APP=
-```
-
-### App mobile
-
-```bash
-cd divulgamap-app
-npm install
-npx expo start
-```
-
-Por padrão, `src/services/api.js` aponta para a API de produção (Render). Para testar
-contra um backend rodando local, troque o `baseURL` pelo IP da sua máquina na rede
-local (ex: `http://192.168.0.10:3000`) — instruções completas no guia de implementação
-do projeto.
-
-## Estrutura de rotas da API
-
-| Rota | Descrição |
-|---|---|
-| `POST /auth/cadastro` | Cria um novo usuário |
-| `POST /auth/login` | Autentica e retorna token JWT |
-| `/empresas` | CRUD de empresas cadastradas |
-| `/produtos` | CRUD de produtos/ofertas |
-| `/promocoes` | Promoções ativas |
-| `/salvos` | Itens salvos/favoritos do usuário |
-| `/avaliacoes` | Avaliações de empresas |
-| `/horarios` | Horários de funcionamento |
-| `/listas` | Listas/categorias |
-
-## Stack técnica
-
-- **Backend:** Node.js, Express 5, PostgreSQL (`pg`), JWT (`jsonwebtoken`), `bcrypt`
-  para hash de senha, `nodemailer` para e-mails, `multer` para upload de arquivos.
-- **App:** React Native (Expo SDK), React Navigation, Axios, AsyncStorage,
-  `react-native-maps` + `expo-location`.
+- **Backend:** Express 5, PostgreSQL (`pg`), JWT, `bcrypt`, `nodemailer`, `multer`, Swagger UI
+- **App:** Expo, React Native, React Navigation, Axios, `react-native-maps`, `expo-location`, `expo-image-picker`
 
 ## Licença
 
