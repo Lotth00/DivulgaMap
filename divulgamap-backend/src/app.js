@@ -17,8 +17,12 @@ const historicoRoutes = require('./routes/historico.routes');
 const feedbackRoutes = require('./routes/feedback.routes');
 const buscaRoutes = require('./routes/busca.routes');
 const anunciosRoutes = require('./routes/anuncios.routes');
+const logsRoutes = require('./routes/logs.routes');
 
 const app = express();
+
+// IP real de quem chama, atrás do proxy do Render
+app.set('trust proxy', 1);
 
 app.use(cors());         
 app.use(express.json()); 
@@ -38,6 +42,7 @@ app.use('/historico', historicoRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/busca', buscaRoutes);
 app.use('/anuncios', anunciosRoutes);
+app.use('/logs', logsRoutes);
 
 // Documentação da API (Swagger)
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoApi, {

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const registrarLog = require('../utils/registrarLog');
 
 const router = express.Router();
 
@@ -53,6 +54,7 @@ router.post('/cadastro', async (req, res) => {
         [novoUsuario.rows[0].id]
       );
       await cliente.query('COMMIT');
+      await registrarLog(req, { acao: 'cadastro', usuarioId: novoUsuario.rows[0].id });
       return res.status(201).json(novoUsuario.rows[0]);
     } catch (erroTransacao) {
       await cliente.query('ROLLBACK');
@@ -69,8 +71,11 @@ router.post('/cadastro', async (req, res) => {
 // ROTA DE LOGIN
 router.post('/login', async (req, res) => {
   try {
-    const { senha } = req.body;
-    const email = normalizarEmail(req.body.email);
+    const senha = req.body?.senha;
+    const email = normalizarEmail(req.body?.email);
+    if (typeof email !== 'string' || !email || typeof senha !== 'string' || !senha) {
+      return res.status(400).json({ erro: 'Informe o e-mail e a senha.' });
+    }
 
     // 1. Busca o usuário pelo e-mail
     const resultado = await pool.query(
@@ -80,6 +85,7 @@ router.post('/login', async (req, res) => {
     const usuario = resultado.rows[0];
 
     if (!usuario) {
+      await registrarLog(req, { acao: 'login_falhou', detalhes: { email_tentado: email.slice(0, 150), motivo: 'conta_inexistente' } });
       return res.status(401).json({ erro: 'E-mail ou senha inválidos.' });
     }
 
@@ -87,6 +93,7 @@ router.post('/login', async (req, res) => {
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
 
     if (!senhaCorreta) {
+      await registrarLog(req, { acao: 'login_falhou', usuarioId: usuario.id_usuario, detalhes: { motivo: 'senha_errada' } });
       return res.status(401).json({ erro: 'E-mail ou senha inválidos.' });
     }
 
@@ -97,6 +104,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    await registrarLog(req, { acao: 'login', usuarioId: usuario.id_usuario });
     return res.json({
       token,
       usuario: { id: usuario.id_usuario, nome: usuario.nome, email: usuario.email, tipo: usuario.tipo },

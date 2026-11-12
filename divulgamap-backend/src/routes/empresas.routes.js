@@ -4,6 +4,8 @@ const verificarToken = require('../middlewares/auth');
 const verificarAdmin = require('../middlewares/admin');
 const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 const idValido = require('../utils/id');
+const registrarLog = require('../utils/registrarLog');
+const avisoPorEmail = require('../utils/avisoPorEmail');
 
 const router = express.Router();
 
@@ -409,6 +411,7 @@ router.post('/rascunho', verificarToken, async (req, res) => {
       await cliente.query('INSERT INTO empresa_categoria (empresa_id, categoria_id) VALUES ($1, $2)', [empresa.id_empresa, idCategoria]);
     }
     await cliente.query('COMMIT');
+    await registrarLog(req, { acao: 'empresa_criada', alvoTipo: 'empresa', alvoId: empresa.id_empresa, detalhes: { nome: nome } });
 
     return res.status(201).json({ ...empresa, categorias });
   } catch (erro) {
@@ -590,6 +593,10 @@ router.patch('/:id', verificarToken, verificarDonoEmpresa, async (req, res) => {
       }
     }
 
+    await registrarLog(req, {
+      acao: 'empresa_editada', alvoTipo: 'empresa', alvoId: Number(id),
+      detalhes: { campos: Object.keys(corpo), situacao: req.empresa.status },
+    });
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);
@@ -663,6 +670,10 @@ router.post('/:id/reivindicar', verificarToken, async (req, res) => {
       [id, req.usuario.id, mensagem]
     );
 
+    await registrarLog(req, {
+      acao: 'reivindicacao_criada', alvoTipo: 'empresa', alvoId: Number(id),
+      detalhes: { id_solicitacao: solicitacao.rows[0].id_solicitacao },
+    });
     await notificarAdminPorEmail(
       'Nova reivindicação de empresa',
       `A empresa "${empresa.rows[0].nome_fantasia}" (id ${id}) foi reivindicada por outro usuário. Mensagem: ${mensagem || '(nenhuma)'}`
@@ -695,6 +706,10 @@ router.post('/:id/denunciar', verificarToken, async (req, res) => {
       [id, req.usuario.id, motivo, mensagem]
     );
 
+    await registrarLog(req, {
+      acao: 'denuncia_criada', alvoTipo: 'empresa', alvoId: Number(id),
+      detalhes: { id_solicitacao: solicitacao.rows[0].id_solicitacao, motivo },
+    });
     await notificarAdminPorEmail(
       'Nova denúncia de empresa',
       `A empresa "${empresa.rows[0].nome_fantasia}" (id ${id}) foi denunciada. Motivo: ${motivo}. Mensagem: ${mensagem || '(nenhuma)'}`
@@ -875,6 +890,10 @@ router.post('/:id/submeter', verificarToken, verificarDonoEmpresa, async (req, r
        WHERE id_empresa = $1 RETURNING *`,
       [id]
     );
+    await registrarLog(req, {
+      acao: 'empresa_enviada', alvoTipo: 'empresa', alvoId: Number(id),
+      detalhes: { reenvio: dadosEmpresa.status === 'rejeitada' },
+    });
 
     return res.json(atualizada.rows[0]);
   } catch (erro) {
@@ -907,6 +926,7 @@ router.patch('/:id/aprovar', verificarToken, verificarAdmin, async (req, res) =>
     if (!atualizada.rows[0]) {
       return responderStatusInvalido(res, id, 'Só empresas esperando aprovação podem ser aprovadas.');
     }
+    await registrarLog(req, { acao: 'empresa_aprovada', alvoTipo: 'empresa', alvoId: id });
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);
@@ -933,6 +953,7 @@ router.patch('/:id/rejeitar', verificarToken, verificarAdmin, async (req, res) =
     if (!atualizada.rows[0]) {
       return responderStatusInvalido(res, id, 'Só empresas esperando aprovação ou aprovadas podem ser rejeitadas.');
     }
+    await registrarLog(req, { acao: 'empresa_rejeitada', alvoTipo: 'empresa', alvoId: id, detalhes: { motivo } });
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);
@@ -978,7 +999,16 @@ router.patch('/solicitacoes/:id/aprovar', verificarToken, verificarAdmin, async 
       return res.status(400).json({ erro: 'Esta solicitação já foi analisada.' });
     }
 
+    let troca = null;
     if (tipo === 'reivindicacao') {
+      troca = (await cliente.query(
+        `SELECT e.nome_fantasia, e.id_usuario AS id_dono_antigo, antigo.email AS email_antigo, novo.email AS email_novo
+         FROM empresas e
+         JOIN usuarios antigo ON antigo.id_usuario = e.id_usuario
+         JOIN usuarios novo ON novo.id_usuario = $2
+         WHERE e.id_empresa = $1`,
+        [empresa_id, id_usuario]
+      )).rows[0];
       await cliente.query('UPDATE empresas SET id_usuario = $1 WHERE id_empresa = $2', [id_usuario, empresa_id]);
       await cliente.query(
         `UPDATE solicitacoes_empresa SET status = 'rejeitada'
@@ -997,6 +1027,17 @@ router.patch('/solicitacoes/:id/aprovar', verificarToken, verificarAdmin, async 
       [id_solicitacao]
     );
     await cliente.query('COMMIT');
+
+    await registrarLog(req, { acao: 'solicitacao_aceita', alvoTipo: 'empresa', alvoId: empresa_id, detalhes: { id_solicitacao, tipo } });
+    if (troca) {
+      await registrarLog(req, {
+        acao: 'empresa_dono_trocado', alvoTipo: 'empresa', alvoId: empresa_id,
+        detalhes: { dono_antigo: troca.id_dono_antigo, dono_novo: id_usuario },
+      });
+      const texto = `A empresa "${troca.nome_fantasia}" agora pertence a outra conta, depois de um pedido aprovado pela equipe do DivulgaMap.`;
+      await avisoPorEmail(troca.email_antigo, 'Sua empresa mudou de dono', `${texto} Ela não aparece mais em Minhas empresas.`);
+      await avisoPorEmail(troca.email_novo, 'Você agora é dono de uma empresa', `${texto} Ela já aparece em Minhas empresas, na sua conta.`);
+    }
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     await cliente.query('ROLLBACK').catch(() => {});
@@ -1021,6 +1062,10 @@ router.patch('/solicitacoes/:id/rejeitar', verificarToken, verificarAdmin, async
         ? res.status(400).json({ erro: 'Esta solicitação já foi analisada.' })
         : res.status(404).json({ erro: 'Solicitação não encontrada.' });
     }
+    await registrarLog(req, {
+      acao: 'solicitacao_recusada', alvoTipo: 'empresa', alvoId: atualizada.rows[0].empresa_id,
+      detalhes: { id_solicitacao: atualizada.rows[0].id_solicitacao, tipo: atualizada.rows[0].tipo },
+    });
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);

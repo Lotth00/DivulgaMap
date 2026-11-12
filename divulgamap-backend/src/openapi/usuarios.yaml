@@ -122,6 +122,23 @@ paths:
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }
 
+  /usuarios/me/atividade:
+    get:
+      tags: [usuarios]
+      summary: Últimos logins e mudanças de segurança da própria conta
+      description: Até 30 registros de login (certo e errado), troca de senha, códigos e dados alterados, com IP e aparelho.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Atividade da conta, da mais nova à mais antiga
+          content:
+            application/json:
+              example:
+                - { id_log: 9, acao: senha_trocada, detalhes: { metodo: senha_atual, desconectou_outros: false }, ip: '177.10.20.30', aparelho: 'okhttp/4.12.0', criado_em: '2026-11-12T13:05:00.000Z' }
+                - { id_log: 7, acao: login_falhou, detalhes: { motivo: senha_errada }, ip: '177.10.20.30', aparelho: 'okhttp/4.12.0', criado_em: '2026-11-12T13:00:00.000Z' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
   /usuarios/me/perfil:
     get:
       tags: [usuarios]

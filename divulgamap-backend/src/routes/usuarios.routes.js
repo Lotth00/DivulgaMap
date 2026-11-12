@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
+const registrarLog = require('../utils/registrarLog');
+const avisoPorEmail = require('../utils/avisoPorEmail');
 
 const router = express.Router();
 
@@ -97,6 +99,7 @@ router.put('/me', verificarToken, async (req, res) => {
     if (!resultado.rows[0]) {
       return res.status(404).json({ erro: 'Usuário não encontrado.' });
     }
+    await registrarLog(req, { acao: 'dados_alterados', detalhes: { campos: Object.keys(REGRAS_PERFIL).filter((c) => c in corpo) } });
     return res.json(resultado.rows[0]);
   } catch (erro) {
     console.error(erro);
@@ -138,6 +141,28 @@ async function montarPerfil(usuarioId) {
     fotos: fotos.rows,
   };
 }
+
+// Ações que a própria pessoa vê na atividade da conta
+const ACOES_DA_CONTA = ['login', 'login_falhou', 'senha_trocada', 'senha_codigo_pedido', 'senha_codigo_errado', 'senha_atual_errada', 'dados_alterados'];
+const LIMITE_ATIVIDADE = 30;
+
+// GET /usuarios/me/atividade — últimos logins e mudanças de segurança da própria conta
+router.get('/me/atividade', verificarToken, async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      `SELECT id_log, acao, detalhes, ip, aparelho, criado_em
+       FROM logs_atividade
+       WHERE id_usuario = $1 AND acao = ANY($2::text[])
+       ORDER BY criado_em DESC, id_log DESC
+       LIMIT $3`,
+      [req.usuario.id, ACOES_DA_CONTA, LIMITE_ATIVIDADE]
+    );
+    return res.json(resultado.rows);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao buscar a atividade da conta.' });
+  }
+});
 
 // GET /usuarios/me/perfil — o próprio perfil (sempre completo)
 router.get('/me/perfil', verificarToken, async (req, res) => {
@@ -207,6 +232,7 @@ router.delete('/me', verificarToken, async (req, res) => {
       return res.status(403).json({ erro: 'Senha incorreta.' });
     }
 
+    await registrarLog(req, { acao: 'conta_excluida', detalhes: { id_usuario_excluido: req.usuario.id } });
     await cliente.query('BEGIN');
 
     // Empresas de outras pessoas que esta conta avaliou (a nota delas muda)
@@ -286,6 +312,7 @@ router.post('/me/solicitar-codigo-senha', verificarToken, async (req, res) => {
       text: `Seu código é: ${codigo}. Se você não pediu essa troca de senha, ignore este e-mail.`,
     });
 
+    await registrarLog(req, { acao: 'senha_codigo_pedido' });
     return res.json({ mensagem: 'Código enviado para o seu e-mail.' });
   } catch (erro) {
     console.error(erro);
@@ -307,6 +334,7 @@ router.put('/me/senha', verificarToken, async (req, res) => {
       // Senha atual errada responde 403 (o 401 faria o app encerrar a sessão)
       const atual = await pool.query('SELECT senha_hash FROM usuarios WHERE id_usuario = $1', [req.usuario.id]);
       if (!atual.rows[0] || !(await bcrypt.compare(senhaAtual, atual.rows[0].senha_hash))) {
+        await registrarLog(req, { acao: 'senha_atual_errada' });
         return res.status(403).json({ erro: 'A senha atual está incorreta.' });
       }
     } else {
@@ -334,6 +362,7 @@ router.put('/me/senha', verificarToken, async (req, res) => {
           [tentativas, tentativas >= MAXIMO_TENTATIVAS_CODIGO, registro.id_codigo]
         );
         const restantes = MAXIMO_TENTATIVAS_CODIGO - tentativas;
+        await registrarLog(req, { acao: 'senha_codigo_errado', detalhes: { tentativa: tentativas } });
         return res.status(400).json({
           erro: restantes > 0
             ? `Código incorreto. Você ainda tem ${restantes} ${restantes === 1 ? 'tentativa' : 'tentativas'}.`
@@ -358,6 +387,17 @@ router.put('/me/senha', verificarToken, async (req, res) => {
     if (idCodigo) {
       await pool.query('UPDATE codigos_verificacao_senha SET usado = TRUE WHERE id_codigo = $1', [idCodigo]);
     }
+
+    await registrarLog(req, {
+      acao: 'senha_trocada',
+      detalhes: { metodo: idCodigo ? 'codigo_por_email' : 'senha_atual', desconectou_outros: desconectar },
+    });
+    const conta = await pool.query('SELECT email FROM usuarios WHERE id_usuario = $1', [req.usuario.id]);
+    await avisoPorEmail(
+      conta.rows[0]?.email,
+      'Sua senha foi alterada',
+      `A senha da sua conta no DivulgaMap foi alterada em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.`
+    );
 
     // Este aparelho recebe um login novo para continuar conectado
     if (desconectar) {

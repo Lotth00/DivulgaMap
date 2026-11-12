@@ -5,6 +5,7 @@ const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
 const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 const idValido = require('../utils/id');
+const registrarLog = require('../utils/registrarLog');
 
 const router = express.Router();
 
@@ -147,6 +148,14 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
     );
     await cliente.query('COMMIT');
 
+    await registrarLog(req, {
+      acao: 'anuncio_criado', alvoTipo: 'anuncio', alvoId: idAnuncio,
+      detalhes: { empresa_id: req.empresa.id_empresa, formato: dados.formato, dias: dados.dias },
+    });
+    await registrarLog(req, {
+      acao: 'pagamento_aprovado', alvoTipo: 'anuncio', alvoId: idAnuncio,
+      detalhes: { valor: dados.valor, gateway_id: pagamento.rows[0].gateway_id, simulado: true },
+    });
     return res.status(201).json({ ...ativado.rows[0], pagamento: pagamento.rows[0] });
   } catch (erroBanco) {
     await cliente.query('ROLLBACK').catch(() => {});

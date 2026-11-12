@@ -1,0 +1,39 @@
+tags:
+  - name: logs
+    description: Registro de atividades (quem fez o quê, quando e de onde), guardado por 90 dias
+
+paths:
+  /logs:
+    get:
+      tags: [logs]
+      summary: Registro de atividades (só admin)
+      description: |
+        Do mais novo ao mais antigo. Nunca guarda senha, código nem token.
+        Ações registradas: `cadastro`, `login`, `login_falhou`, `dados_alterados`, `conta_excluida`,
+        `senha_codigo_pedido`, `senha_codigo_errado`, `senha_atual_errada`, `senha_trocada`,
+        `empresa_criada`, `empresa_editada`, `empresa_enviada`, `empresa_aprovada`, `empresa_rejeitada`,
+        `reivindicacao_criada`, `denuncia_criada`, `solicitacao_aceita`, `solicitacao_recusada`,
+        `empresa_dono_trocado`, `anuncio_criado` e `pagamento_aprovado`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: usuario, schema: { type: integer }, description: Número da conta }
+        - { in: query, name: acao, schema: { type: string }, example: login_falhou }
+        - { in: query, name: de, schema: { type: string, format: date }, description: 'A partir do dia (AAAA-MM-DD)' }
+        - { in: query, name: ate, schema: { type: string, format: date }, description: 'Até o dia, inteiro (AAAA-MM-DD)' }
+        - { in: query, name: pagina, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: limite, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200':
+          description: Uma página do registro
+          content:
+            application/json:
+              example:
+                total: 1
+                pagina: 1
+                limite: 50
+                registros:
+                  - { id_log: 7, acao: login_falhou, alvo_tipo: null, alvo_id: null, detalhes: { motivo: senha_errada }, ip: '177.10.20.30', aparelho: 'okhttp/4.12.0', criado_em: '2026-11-12T13:00:00.000Z', id_usuario: 3, usuario_nome: Teste, usuario_email: teste@teste.com }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
