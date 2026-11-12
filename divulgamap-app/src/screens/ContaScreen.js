@@ -51,6 +51,7 @@ export default function ContaScreen({ navigation }) {
   }
 
   const nome = usuario?.nome?.split(' ')[0] ?? '';
+  const ehAdmin = (dados?.tipo ?? usuario?.tipo) === 'admin';
 
   // Item da empresa: adicionar, abrir a única ou escolher entre várias
   let itemEmpresa = { texto: 'Adicione sua empresa', onPress: () => adicionarEmpresa(navigation) };
@@ -91,6 +92,12 @@ export default function ContaScreen({ navigation }) {
           <ItemMenu icone={require('../../assets/images/icones/perfil.png')} texto="Seu perfil" posicao="primeiro" onPress={() => avisarEmBreve('Seu perfil')} />
           <ItemMenu icone={require('../../assets/images/icones/empresa.png')} texto={itemEmpresa.texto} posicao="ultimo" onPress={itemEmpresa.onPress} />
         </View>
+
+        {ehAdmin && (
+          <View style={styles.grupo}>
+            <ItemMenu icone="shield-checkmark-outline" texto="Aprovações" onPress={() => navigation.navigate('FilaAprovacao')} />
+          </View>
+        )}
 
         <View style={styles.grupo}>
           <ItemMenu icone={require('../../assets/images/icones/dados.png')} texto="Seus dados no DivulgaMap" posicao="primeiro" onPress={() => avisarEmBreve('Seus dados no DivulgaMap')} />

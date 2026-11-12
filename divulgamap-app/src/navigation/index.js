@@ -26,6 +26,7 @@ import StatusEmpresaScreen from '../screens/empresa/StatusEmpresaScreen';
 import PromocaoFormScreen from '../screens/empresa/PromocaoFormScreen';
 import EditarEmpresaScreen from '../screens/empresa/EditarEmpresaScreen';
 import ListaSecaoScreen from '../screens/ListaSecaoScreen';
+import FilaAprovacaoScreen from '../screens/admin/FilaAprovacaoScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -66,6 +67,7 @@ export default function Navigation() {
         <Stack.Screen name="PromocaoForm" component={PromocaoFormScreen} />
         <Stack.Screen name="EditarEmpresa" component={EditarEmpresaScreen} />
         <Stack.Screen name="ListaSecao" component={ListaSecaoScreen} />
+        <Stack.Screen name="FilaAprovacao" component={FilaAprovacaoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

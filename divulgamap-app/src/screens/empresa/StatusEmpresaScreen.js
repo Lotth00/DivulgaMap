@@ -11,7 +11,7 @@ import { STATUS_EMPRESA } from './util';
 const TEXTOS = {
   rascunho: 'O cadastro desta empresa ainda não foi enviado. Continue de onde parou para mandar para a aprovação.',
   pendente_aprovacao: 'Recebemos o cadastro. A equipe do DivulgaMap está analisando e, quando aprovar, a empresa aparece no mapa e você poderá cuidar dos produtos e das ofertas.',
-  rejeitada: 'O cadastro não foi aprovado. Veja o motivo abaixo.',
+  rejeitada: 'O cadastro não foi aprovado. Veja o motivo abaixo, corrija o que for preciso e envie de novo.',
 };
 
 // Situação de uma empresa ainda não aprovada
@@ -38,13 +38,23 @@ export default function StatusEmpresaScreen({ route, navigation }) {
     }
   }
 
+  let rodape = null;
+  if (empresa.status === 'rascunho') {
+    rodape = <BotaoGradiente titulo="Continuar cadastro" onPress={continuarCadastro} carregando={abrindo} />;
+  } else if (empresa.status === 'rejeitada') {
+    rodape = (
+      <BotaoGradiente
+        titulo="Corrigir e reenviar"
+        onPress={() => navigation.navigate('EditarEmpresa', { id: empresa.id_empresa, reenviar: true })}
+      />
+    );
+  }
+
   return (
     <TelaConta
       navigation={navigation}
       titulo={empresa.nome_fantasia}
-      rodape={empresa.status === 'rascunho'
-        ? <BotaoGradiente titulo="Continuar cadastro" onPress={continuarCadastro} carregando={abrindo} />
-        : null}
+      rodape={rodape}
     >
       <View style={styles.selo}>
         <Ionicons name={situacao.icone} size={22} color={empresa.status === 'rejeitada' ? colors.vermelhoAviso : colors.pretoTexto} />

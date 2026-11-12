@@ -48,7 +48,7 @@ function montarSemana(horarios = []) {
 
 // Edição do perfil da empresa pelo dono: foto de perfil, dados, endereço, horários e fotos do ambiente
 export default function EditarEmpresaScreen({ route, navigation }) {
-  const { id } = route.params;
+  const { id, reenviar = false } = route.params;
   const [carregando, setCarregando] = useState(true);
   const [falhou, setFalhou] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -74,7 +74,7 @@ export default function EditarEmpresaScreen({ route, navigation }) {
     setCarregando(true);
     setFalhou(false);
     try {
-      const [resposta, listaCategorias] = await Promise.all([api.get(`/empresas/${id}`), api.get('/categorias')]);
+      const [resposta, listaCategorias] = await Promise.all([api.get(`/empresas/${id}/edicao`), api.get('/categorias')]);
       const e = resposta.data;
       setOriginal(e);
       setLogo(e.foto_perfil_url ?? null);
@@ -189,16 +189,32 @@ export default function EditarEmpresaScreen({ route, navigation }) {
       }));
     }
 
-    if (!Object.keys(dados).length) {
+    if (!Object.keys(dados).length && !reenviar) {
       navigation.goBack();
       return undefined;
     }
     setSalvando(true);
     try {
-      await api.patch(`/empresas/${id}`, dados);
-      navigation.goBack();
+      if (Object.keys(dados).length) await api.patch(`/empresas/${id}`, dados);
     } catch (erro) {
+      setSalvando(false);
       Alert.alert('Não foi possível salvar', mensagemDeErro(erro));
+      return undefined;
+    }
+    if (!reenviar) {
+      setSalvando(false);
+      navigation.goBack();
+      return undefined;
+    }
+
+    // Empresa rejeitada: volta para a fila de aprovação
+    try {
+      await api.post(`/empresas/${id}/submeter`);
+      Alert.alert('Cadastro reenviado', 'A equipe do DivulgaMap vai analisar de novo.');
+      navigation.pop(2);
+    } catch (erro) {
+      Alert.alert('Salvo, mas não reenviado', mensagemDeErro(erro));
+      setOriginal((atual) => ({ ...atual, ...dados }));
     } finally {
       setSalvando(false);
     }
@@ -208,12 +224,13 @@ export default function EditarEmpresaScreen({ route, navigation }) {
   return (
     <TelaConta
       navigation={navigation}
-      titulo="Editar perfil da empresa"
+      titulo={reenviar ? 'Corrigir cadastro' : 'Editar perfil da empresa'}
+      descricao={reenviar && original?.motivo_rejeicao ? `Motivo da rejeição: ${original.motivo_rejeicao}` : null}
       carregando={carregando}
       falhou={falhou}
       onTentarDeNovo={carregar}
       rodape={!carregando && !falhou
-        ? <BotaoGradiente titulo="Salvar" onPress={salvar} carregando={salvando} desativado={!!enviandoFoto} />
+        ? <BotaoGradiente titulo={reenviar ? 'Salvar e reenviar' : 'Salvar'} onPress={salvar} carregando={salvando} desativado={!!enviandoFoto} />
         : null}
     >
       <TouchableOpacity onPress={trocarLogo} disabled={!!enviandoFoto} style={styles.logo} activeOpacity={0.8}>
