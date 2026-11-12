@@ -4,12 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
 
-export default function CartaoAcessoNecessario({ mensagem, navigation }) {
+export default function CartaoAcessoNecessario({ mensagem, navigation, style }) {
   return (
-  
     <LinearGradient
       colors={['rgba(199,255,120,0.8)', 'rgba(248,255,68,0.8)']}
-      style={styles.cartao}
+      style={[styles.cartao, style]}
     >
       <Text style={styles.mensagem}>{mensagem}</Text>
 

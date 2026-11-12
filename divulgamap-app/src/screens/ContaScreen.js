@@ -42,6 +42,7 @@ export default function ContaScreen({ navigation }) {
         <CartaoAcessoNecessario
           mensagem={'Para acessar seu perfil faça\nlogin ou crie uma conta'}
           navigation={navigation}
+          style={styles.cartaoSemConta}
         />
         <TouchableOpacity onPress={() => navigation.navigate('TextoLegal', { tipo: 'privacidade' })} style={styles.rodape}>
           <Text style={styles.textoRodape}>Política de Privacidade</Text>
@@ -143,7 +144,9 @@ const styles = StyleSheet.create({
   wordmark: { width: 150, height: 36, marginBottom: 40 },
   avatarSemConta: {
     width: 78, height: 78, borderRadius: 39, backgroundColor: colors.brancoFundo,
-    alignItems: 'center', justifyContent: 'center', marginBottom: -44, zIndex: 2,
+    alignItems: 'center', justifyContent: 'center', marginBottom: -30, zIndex: 2,
     elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6,
   },
+  // Espaço para a parte do avatar que entra no card
+  cartaoSemConta: { paddingTop: 54 },
 });
