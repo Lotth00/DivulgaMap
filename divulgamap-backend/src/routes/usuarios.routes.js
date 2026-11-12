@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Campos devolvidos do usuário (nunca a senha)
 const CAMPOS_USUARIO = `id_usuario AS id, nome, email, tipo, telefone, foto_perfil_url, biografia,
-  to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento, conta_privada, notificacoes_ativas, data_cadastro,
+  to_char(data_nascimento, 'YYYY-MM-DD') AS data_nascimento, conta_privada, notificacoes_ativas, preferencias_notificacao, data_cadastro,
   to_char(senha_atualizada_em, 'YYYY-MM-DD') AS senha_atualizada_em`;
 
 function textoOpcional(valor, tamanhoMaximo) {
@@ -16,6 +16,9 @@ function textoOpcional(valor, tamanhoMaximo) {
   if (typeof valor !== 'string' || valor.trim().length > tamanhoMaximo) return { erro: true };
   return { valor: valor.trim() || null };
 }
+
+// Assuntos das notificações que a pessoa pode ligar ou desligar
+const ASSUNTOS_NOTIFICACAO = ['ofertas_gerais', 'empresas_proximas', 'recomendacoes'];
 
 // Regras de cada campo editável: devolve { valor } ou { erro: mensagem }
 const REGRAS_PERFIL = {
@@ -40,6 +43,14 @@ const REGRAS_PERFIL = {
   },
   conta_privada: (v) => (typeof v === 'boolean' ? { valor: v } : { erro: 'conta_privada deve ser true ou false.' }),
   notificacoes_ativas: (v) => (typeof v === 'boolean' ? { valor: v } : { erro: 'notificacoes_ativas deve ser true ou false.' }),
+  preferencias_notificacao: (v) => {
+    const certo = v && typeof v === 'object' && !Array.isArray(v)
+      && Object.keys(v).length === ASSUNTOS_NOTIFICACAO.length
+      && ASSUNTOS_NOTIFICACAO.every((assunto) => typeof v[assunto] === 'boolean');
+    return certo
+      ? { valor: JSON.stringify(Object.fromEntries(ASSUNTOS_NOTIFICACAO.map((a) => [a, v[a]]))) }
+      : { erro: `preferencias_notificacao deve ter ${ASSUNTOS_NOTIFICACAO.join(', ')}, cada um true ou false.` };
+  },
 };
 
 // GET /usuarios/me — dados do usuário logado

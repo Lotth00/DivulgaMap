@@ -1278,3 +1278,10 @@ CREATE INDEX IF NOT EXISTS eventos_anuncio_idx ON public.eventos_anuncio (anunci
 --
 
 ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS ramo character varying(60);
+
+--
+-- Preferências de notificação por assunto (a chave geral continua em notificacoes_ativas)
+--
+
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS preferencias_notificacao jsonb
+  DEFAULT '{"ofertas_gerais": true, "empresas_proximas": true, "recomendacoes": true}'::jsonb NOT NULL;

@@ -24,6 +24,7 @@ paths:
                 data_nascimento: "2008-05-10"
                 conta_privada: false
                 notificacoes_ativas: true
+                preferencias_notificacao: { ofertas_gerais: true, empresas_proximas: true, recomendacoes: false }
                 data_cadastro: "2026-10-27T18:00:00.000Z"
         '401': { $ref: '#/components/responses/SemToken' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
@@ -46,7 +47,14 @@ paths:
                 data_nascimento: { type: string, format: date, nullable: true }
                 foto_perfil_url: { type: string, nullable: true, description: Endereço https da foto }
                 conta_privada: { type: boolean }
-                notificacoes_ativas: { type: boolean }
+                notificacoes_ativas: { type: boolean, description: Chave geral das notificações }
+                preferencias_notificacao:
+                  type: object
+                  description: Assuntos das notificações (os três juntos)
+                  properties:
+                    ofertas_gerais: { type: boolean }
+                    empresas_proximas: { type: boolean }
+                    recomendacoes: { type: boolean }
             example:
               biografia: Oi
               data_nascimento: "2008-05-10"

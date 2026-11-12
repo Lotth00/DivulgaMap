@@ -8,6 +8,7 @@ const router = express.Router();
 const TAMANHO_MAXIMO_MENSAGEM = 2000;
 const TITULOS = { problema: 'Problema relatado', sugestao: 'Sugestão' };
 const LIMITE_POR_HORA = 5;
+const MAXIMO_IMAGENS = 3;
 const UMA_HORA = 60 * 60 * 1000;
 
 // Envios recentes de cada conta (protege a cota diária do Gmail, usada também pelos códigos)
@@ -32,6 +33,12 @@ router.post('/', verificarToken, async (req, res) => {
     if (!mensagem || mensagem.length > TAMANHO_MAXIMO_MENSAGEM) {
       return res.status(400).json({ erro: `mensagem é obrigatória e pode ter até ${TAMANHO_MAXIMO_MENSAGEM} letras.` });
     }
+    const imagens = req.body?.imagens ?? [];
+    const imagensValidas = Array.isArray(imagens) && imagens.length <= MAXIMO_IMAGENS
+      && imagens.every((url) => typeof url === 'string' && /^https:\/\/\S+$/.test(url) && url.length <= 500);
+    if (!imagensValidas) {
+      return res.status(400).json({ erro: `imagens deve ser uma lista de até ${MAXIMO_IMAGENS} endereços https.` });
+    }
     if (!podeEnviar(req.usuario.id)) {
       return res.status(429).json({ erro: `Você já enviou ${LIMITE_POR_HORA} mensagens na última hora. Tente mais tarde.` });
     }
@@ -51,7 +58,8 @@ router.post('/', verificarToken, async (req, res) => {
       to: process.env.EMAIL_USER,
       replyTo: email || undefined,
       subject: `[DivulgaMap] ${TITULOS[tipo]}`,
-      text: `${TITULOS[tipo]} de ${nome} (${email || 'sem e-mail'}, conta ${req.usuario.id}):\n\n${mensagem}`,
+      text: `${TITULOS[tipo]} de ${nome} (${email || 'sem e-mail'}, conta ${req.usuario.id}):\n\n${mensagem}`
+        + (imagens.length ? `\n\nImagens:\n${imagens.join('\n')}` : ''),
     });
     enviosPorUsuario.get(req.usuario.id).push(Date.now());
 
