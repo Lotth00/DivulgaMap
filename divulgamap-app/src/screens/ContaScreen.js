@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import api from '../services/api';
+import React, { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import CartaoAcessoNecessario from '../components/CartaoAcessoNecessario';
 import ItemMenu from '../components/ItemMenu';
 import { useDadosUsuario, avisarEmBreve } from '../components/conta/util';
+import MenuPopup from '../components/MenuPopup';
+import { useMinhasEmpresas, abrirMinhaEmpresa, adicionarEmpresa, STATUS_EMPRESA } from './empresa/util';
 import colors from '../theme/colors';
 import tipografia, { fs } from '../theme/tipografia';
 
@@ -27,6 +28,8 @@ export default function ContaScreen({ navigation }) {
   const { logado, usuario } = useAuth();
   const { dados } = useDadosUsuario(logado);
   const insets = useSafeAreaInsets();
+  const { empresas } = useMinhasEmpresas(logado);
+  const [escolherEmpresa, setEscolherEmpresa] = useState(false);
 
   if (!logado) {
     return (
@@ -49,30 +52,12 @@ export default function ContaScreen({ navigation }) {
 
   const nome = usuario?.nome?.split(' ')[0] ?? '';
 
-  // Cadastro de empresa: continua o rascunho existente ou começa um novo
-  async function adicionarEmpresa() {
-    try {
-      const resposta = await api.get('/empresas/rascunho-atual');
-      const rascunho = resposta.data.existeRascunho ? resposta.data.empresa : null;
-      if (!rascunho) {
-        navigation.navigate('CadastroEmpresa');
-        return;
-      }
-      Alert.alert('Cadastro em andamento', `Você começou a cadastrar "${rascunho.nome_fantasia}". Quer continuar?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Começar outro',
-          style: 'destructive',
-          onPress: async () => {
-            await api.delete(`/empresas/${rascunho.id_empresa}`).catch(() => {});
-            navigation.navigate('CadastroEmpresa');
-          },
-        },
-        { text: 'Continuar', onPress: () => navigation.navigate('CadastroEmpresa', { rascunho }) },
-      ]);
-    } catch (erro) {
-      Alert.alert('Não foi possível abrir', 'Confira sua conexão e tente de novo.');
-    }
+  // Item da empresa: adicionar, abrir a única ou escolher entre várias
+  let itemEmpresa = { texto: 'Adicione sua empresa', onPress: () => adicionarEmpresa(navigation) };
+  if (empresas.length === 1) {
+    itemEmpresa = { texto: 'Minha empresa', onPress: () => abrirMinhaEmpresa(navigation, empresas[0]) };
+  } else if (empresas.length > 1) {
+    itemEmpresa = { texto: 'Minhas empresas', onPress: () => setEscolherEmpresa(true) };
   }
 
   return (
@@ -103,20 +88,32 @@ export default function ContaScreen({ navigation }) {
         </View>
 
         <View style={styles.grupo}>
-          <ItemMenu icone="person" texto="Seu perfil" posicao="primeiro" onPress={() => avisarEmBreve('Seu perfil')} />
-          <ItemMenu icone="storefront" texto="Adicione sua empresa" posicao="ultimo" onPress={adicionarEmpresa} />
+          <ItemMenu icone={require('../../assets/images/icones/perfil.png')} texto="Seu perfil" posicao="primeiro" onPress={() => avisarEmBreve('Seu perfil')} />
+          <ItemMenu icone={require('../../assets/images/icones/empresa.png')} texto={itemEmpresa.texto} posicao="ultimo" onPress={itemEmpresa.onPress} />
         </View>
 
         <View style={styles.grupo}>
-          <ItemMenu icone="reader" texto="Seus dados no DivulgaMap" posicao="primeiro" onPress={() => avisarEmBreve('Seus dados no DivulgaMap')} />
-          <ItemMenu icone="settings-outline" texto="Configurações" posicao="meio" onPress={() => avisarEmBreve('Configurações')} />
-          <ItemMenu icone="help-circle-outline" texto="Ajuda e feedback" posicao="ultimo" onPress={() => avisarEmBreve('Ajuda e feedback')} />
+          <ItemMenu icone={require('../../assets/images/icones/dados.png')} texto="Seus dados no DivulgaMap" posicao="primeiro" onPress={() => avisarEmBreve('Seus dados no DivulgaMap')} />
+          <ItemMenu icone={require('../../assets/images/icones/configuracoes.png')} texto="Configurações" posicao="meio" onPress={() => avisarEmBreve('Configurações')} />
+          <ItemMenu icone={require('../../assets/images/icones/ajuda.png')} texto="Ajuda e feedback" posicao="ultimo" onPress={() => avisarEmBreve('Ajuda e feedback')} />
         </View>
 
         <TouchableOpacity onPress={() => avisarEmBreve('A Política de Privacidade')} style={styles.rodape}>
           <Text style={styles.textoRodape}>Política de Privacidade</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <MenuPopup
+        visivel={escolherEmpresa}
+        centralizado
+        titulo="Qual empresa?"
+        opcoes={empresas.map((empresa) => ({
+          texto: empresa.nome_fantasia,
+          detalhe: empresa.status === 'aprovada' ? null : STATUS_EMPRESA[empresa.status]?.rotulo ?? empresa.status,
+          onPress: () => abrirMinhaEmpresa(navigation, empresa),
+        }))}
+        onFechar={() => setEscolherEmpresa(false)}
+      />
     </View>
   );
 }

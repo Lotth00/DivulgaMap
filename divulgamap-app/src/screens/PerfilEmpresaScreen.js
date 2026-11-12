@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Pressable, Share, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Share, Alert, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Cabecalho from '../components/Cabecalho';
@@ -19,7 +20,11 @@ import AbaSobre from '../components/perfilEmpresa/AbaSobre';
 import ModalAvaliar from '../components/ModalAvaliar';
 import ModalSalvar from '../components/ModalSalvar';
 import ModalAcessoNecessario from '../components/ModalAcessoNecessario';
+import MenuPopup from '../components/MenuPopup';
 import { linkWhatsapp, conversar } from '../components/perfilEmpresa/util';
+import TabelaProdutos from './empresa/TabelaProdutos';
+import AbaOfertasDono from './empresa/AbaOfertasDono';
+import { adicionarEmpresa } from './empresa/util';
 import colors from '../theme/colors';
 import tipografia, { fs } from '../theme/tipografia';
 
@@ -29,16 +34,6 @@ const MOTIVOS_DENUNCIA = [
   { valor: 'duplicada', rotulo: 'Empresa repetida no app' },
   { valor: 'outro', rotulo: 'Outro motivo' },
 ];
-
-// Opção do menu ⋮
-function OpcaoMenu({ icone, texto, onPress }) {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.opcao} activeOpacity={0.6}>
-      {icone && <Ionicons name={icone} size={22} color={colors.pretoTexto} style={styles.iconeOpcao} />}
-      <Text style={styles.textoOpcao}>{texto}</Text>
-    </TouchableOpacity>
-  );
-}
 
 // Nome da aba de produtos conforme o ramo da empresa
 function rotuloDosProdutos(empresa) {
@@ -67,6 +62,9 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
   const [naoEncontrada, setNaoEncontrada] = useState(false);
   const [falhouExtras, setFalhouExtras] = useState(false);
   const [aba, setAba] = useState(abaInicial);
+  const [dono, setDono] = useState(false);
+  const [promocoesDono, setPromocoesDono] = useState([]);
+  const [editandoProdutos, setEditandoProdutos] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -97,6 +95,34 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Modo dono: a empresa está entre as do usuário logado
+  useEffect(() => {
+    if (!logado || !id) {
+      setDono(false);
+      return;
+    }
+    api.get('/empresas/minhas')
+      .then((resposta) => setDono(resposta.data.some((e) => e.id_empresa === Number(id))))
+      .catch(() => setDono(false));
+  }, [logado, id]);
+
+  // Produtos e todas as ofertas do dono, de novo ao voltar do formulário
+  const carregarDono = useCallback(async () => {
+    if (!dono) return;
+    const [dados, listaProdutos, listaPromocoes, listaOfertas] = await Promise.allSettled([
+      api.get(`/empresas/${id}`),
+      api.get(`/produtos/empresa/${id}`),
+      api.get(`/promocoes/empresa/${id}`),
+      api.get('/promocoes/ativas', { params: { empresa: id, limite: 50 } }),
+    ]);
+    if (dados.status === 'fulfilled') setEmpresa(dados.value.data);
+    if (listaProdutos.status === 'fulfilled') setProdutos(listaProdutos.value.data);
+    if (listaPromocoes.status === 'fulfilled') setPromocoesDono(listaPromocoes.value.data);
+    if (listaOfertas.status === 'fulfilled') setOfertas(listaOfertas.value.data);
+  }, [dono, id]);
+
+  useFocusEffect(useCallback(() => { carregarDono(); }, [carregarDono]));
 
   // Se a empresa já está salva em alguma lista da pessoa
   useEffect(() => {
@@ -190,6 +216,7 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
     const abas = [
       { valor: 'geral', rotulo: 'Geral' },
       { valor: 'cardapio', rotulo: rotuloDosProdutos(empresa) },
+      ...(dono ? [{ valor: 'ofertas', rotulo: 'Ofertas' }] : []),
       { valor: 'avaliacoes', rotulo: 'Avaliações' },
       { valor: 'fotos', rotulo: 'Fotos' },
       { valor: 'sobre', rotulo: 'Sobre' },
@@ -198,16 +225,43 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
     let corpo;
     if (falhouExtras && ['cardapio', 'avaliacoes'].includes(aba)) {
       corpo = <ErroComTentarDeNovo onTentarDeNovo={carregar} />;
+    } else if (aba === 'cardapio' && dono && editandoProdutos) {
+      corpo = (
+        <TabelaProdutos
+          empresaId={empresa.id_empresa}
+          produtos={produtos}
+          categoriaEmpresa={empresa.categorias?.[0]}
+          onMudou={carregarDono}
+          onFechar={() => setEditandoProdutos(false)}
+        />
+      );
+    } else if (aba === 'ofertas' && dono) {
+      corpo = (
+        <AbaOfertasDono
+          empresaId={empresa.id_empresa}
+          promocoes={promocoesDono}
+          navigation={navigation}
+          onMudou={carregarDono}
+        />
+      );
     } else if (aba === 'cardapio') {
       corpo = (
-        <AbaCardapio
+        <>
+          {dono && (
+            <TouchableOpacity onPress={() => setEditandoProdutos(true)} style={styles.editar} activeOpacity={0.7}>
+              <Ionicons name="create-outline" size={20} color={colors.pretoTexto} />
+              <Text style={styles.textoEditar}>Editar itens</Text>
+            </TouchableOpacity>
+          )}
+          <AbaCardapio
           produtos={produtos}
           ofertas={ofertas}
           categoriaEmpresa={empresa.categorias?.[0]}
           rotulo={abas[1].rotulo}
           produtoEmDestaque={produtoId}
           onAbrirOferta={abrirOferta}
-        />
+          />
+        </>
       );
     } else if (aba === 'avaliacoes') {
       corpo = <AbaAvaliacoes empresa={empresa} avaliacoes={avaliacoes} minhaAvaliacao={minhaAvaliacao} onAvaliar={abrirAvaliar} />;
@@ -231,7 +285,7 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
 
     conteudo = (
       <ScrollView ref={rolagem} contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
-        <CabecalhoEmpresa empresa={empresa} salvo={salvo} onSalvar={abrirSalvar} />
+        <CabecalhoEmpresa empresa={empresa} />
 
         <View style={styles.faixaAbas}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.abas}>
@@ -265,7 +319,7 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
   }
 
   return (
-    <View style={styles.tela}>
+    <KeyboardAvoidingView style={styles.tela} behavior="padding">
       <StatusBar style="dark" />
       <Cabecalho onVoltar={() => navigation.goBack()} onMenu={empresa ? () => setMenu('principal') : undefined} />
       {conteudo}
@@ -309,26 +363,25 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
         onFechar={() => setPedidoLogin(null)}
       />
 
-      <Modal visible={!!menu} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
-        <Pressable style={styles.fundoMenu} onPress={() => setMenu(null)} />
-        <View style={[styles.folhaMenu, { paddingBottom: insets.bottom + 16 }]}>
-          {menu === 'denuncia' ? (
-            <>
-              <Text style={styles.tituloMenu}>Qual o problema?</Text>
-              {MOTIVOS_DENUNCIA.map((m) => (
-                <OpcaoMenu key={m.valor} texto={m.rotulo} onPress={() => denunciar(m.valor)} />
-              ))}
-            </>
-          ) : (
-            <>
-              <OpcaoMenu icone="share-social-outline" texto="Compartilhar" onPress={compartilhar} />
-              <OpcaoMenu icone="flag-outline" texto="Denunciar empresa" onPress={abrirDenuncia} />
-            </>
-          )}
-          <OpcaoMenu texto="Cancelar" onPress={() => setMenu(null)} />
-        </View>
-      </Modal>
-    </View>
+      <MenuPopup
+        visivel={menu === 'principal'}
+        opcoes={dono ? [
+          { texto: 'Editar perfil', onPress: () => navigation.navigate('EditarEmpresa', { id: empresa.id_empresa }) },
+          { texto: 'Compartilhar', onPress: compartilhar },
+          { texto: 'Adicionar outra empresa', onPress: () => adicionarEmpresa(navigation) },
+        ] : [
+          { texto: salvo ? 'Salvo nas suas listas' : 'Salvar', onPress: abrirSalvar },
+          { texto: 'Compartilhar', onPress: compartilhar },
+          { texto: 'Denunciar empresa', onPress: abrirDenuncia, perigo: true },
+        ]}
+        onFechar={() => setMenu(null)}
+      />
+      <MenuPopup
+        visivel={menu === 'denuncia'}
+        opcoes={MOTIVOS_DENUNCIA.map((m) => ({ texto: m.rotulo, onPress: () => denunciar(m.valor) }))}
+        onFechar={() => setMenu(null)}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
@@ -348,10 +401,6 @@ const styles = StyleSheet.create({
     elevation: 6, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
   },
   circuloFlutuante: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
-  fundoMenu: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  folhaMenu: { backgroundColor: colors.fundoTela, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 12, paddingHorizontal: 20 },
-  tituloMenu: { ...tipografia.tituloSecao, color: colors.textoSecundario, paddingVertical: 8 },
-  opcao: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
-  iconeOpcao: { marginRight: 14 },
-  textoOpcao: { ...tipografia.corpo, color: colors.pretoTexto },
+  editar: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', paddingVertical: 4, marginBottom: 8 },
+  textoEditar: { ...tipografia.corpoMedio, color: colors.pretoTexto, marginLeft: 6 },
 });

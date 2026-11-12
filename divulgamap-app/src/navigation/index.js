@@ -22,6 +22,10 @@ import ExcluirContaScreen from '../screens/conta/ExcluirContaScreen';
 import SenhaSegurancaScreen from '../screens/conta/SenhaSegurancaScreen';
 import TrocarSenhaScreen from '../screens/conta/TrocarSenhaScreen';
 import CadastroEmpresa from '../screens/wizard';
+import StatusEmpresaScreen from '../screens/empresa/StatusEmpresaScreen';
+import PromocaoFormScreen from '../screens/empresa/PromocaoFormScreen';
+import EditarEmpresaScreen from '../screens/empresa/EditarEmpresaScreen';
+import ListaSecaoScreen from '../screens/ListaSecaoScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -58,6 +62,10 @@ export default function Navigation() {
         <Stack.Screen name="SenhaSeguranca" component={SenhaSegurancaScreen} />
         <Stack.Screen name="TrocarSenha" component={TrocarSenhaScreen} />
         <Stack.Screen name="CadastroEmpresa" component={CadastroEmpresa} />
+        <Stack.Screen name="StatusEmpresa" component={StatusEmpresaScreen} />
+        <Stack.Screen name="PromocaoForm" component={PromocaoFormScreen} />
+        <Stack.Screen name="EditarEmpresa" component={EditarEmpresaScreen} />
+        <Stack.Screen name="ListaSecao" component={ListaSecaoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
