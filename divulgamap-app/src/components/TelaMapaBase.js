@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
@@ -116,7 +116,7 @@ const HTML_MAPA = `
 
 // Mapa de Taquara com busca, chips de categoria e menu deslizante
 export default function TelaMapaBase({
-  categoriaSelecionada, onMudarCategoria,
+  categoriaSelecionada, onMudarCategoria, atualizando = false, onAtualizar,
   pontos = [],
   onTocarPonto,
   onMudarLocalizacao,
@@ -236,7 +236,13 @@ export default function TelaMapaBase({
         handleIndicatorStyle={styles.alcaArrastar}
         backgroundStyle={styles.fundoFolha}
       >
-        <BottomSheetScrollView contentContainerStyle={styles.folhaConteudo} showsVerticalScrollIndicator={false}>
+        <BottomSheetScrollView
+          contentContainerStyle={styles.folhaConteudo}
+          showsVerticalScrollIndicator={false}
+          refreshControl={onAtualizar
+            ? <RefreshControl refreshing={atualizando} onRefresh={onAtualizar} colors={[colors.pretoTexto]} />
+            : undefined}
+        >
           {children}
         </BottomSheetScrollView>
       </BottomSheet>

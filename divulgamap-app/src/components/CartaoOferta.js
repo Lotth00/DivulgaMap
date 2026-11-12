@@ -17,6 +17,9 @@ function textoDoSelo(oferta) {
   return oferta.condicao || null;
 }
 
+// Altura fixa: todos os cartões da linha iguais (o de serviço é um pouco mais alto)
+export const ALTURA_CARTAO_OFERTA = 245;
+
 // Cartão de oferta do Início (um item de GET /promocoes/ativas)
 export default function CartaoOferta({ oferta, onPress, largura = 165 }) {
   const precoPromocional = formatarPreco(oferta.preco_promocional, oferta.unidade_medida);
@@ -24,7 +27,7 @@ export default function CartaoOferta({ oferta, onPress, largura = 165 }) {
   const selo = textoDoSelo(oferta);
 
   return (
-    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.8} style={[styles.cartao, { width: largura }]}>
+    <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.8} style={[styles.cartao, { width: largura, height: ALTURA_CARTAO_OFERTA }]}>
       <ImagemItem
         uri={oferta.foto_produto || (!oferta.produto_id ? oferta.foto_empresa : null)}
         categoria={oferta.categoria}

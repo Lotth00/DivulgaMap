@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../theme/colors';
@@ -15,11 +16,25 @@ export const BANNERS_EXEMPLO = [
   { id: 'b5', titulo: 'Serviços', texto: 'Profissionais perto de você', icone: 'construct', cores: ['#B9A6FF', '#E3DBFF'] },
 ];
 
-// Carrossel de banners com bolinhas
+const TEMPO_POR_BANNER = 5000;
+
+// Carrossel de banners que troca sozinho; dá para deslizar, e as bolinhas mostram em qual está
 export default function CarrosselBanners({ banners = BANNERS_EXEMPLO, margemLateral = 20 }) {
   const { width } = useWindowDimensions();
   const largura = width - margemLateral * 2;
   const [atual, setAtual] = useState(0);
+  const rolagem = useRef(null);
+
+  // Próximo banner a cada intervalo; recomeça a contar quando a pessoa desliza
+  useEffect(() => {
+    if (banners.length < 2) return undefined;
+    const relogio = setTimeout(() => {
+      const proximo = (atual + 1) % banners.length;
+      rolagem.current?.scrollTo({ x: proximo * largura, animated: true });
+      setAtual(proximo);
+    }, TEMPO_POR_BANNER);
+    return () => clearTimeout(relogio);
+  }, [atual, banners.length, largura]);
 
   function aoParar(evento) {
     setAtual(Math.round(evento.nativeEvent.contentOffset.x / largura));
@@ -28,6 +43,7 @@ export default function CarrosselBanners({ banners = BANNERS_EXEMPLO, margemLate
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={rolagem}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}

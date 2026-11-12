@@ -4,9 +4,9 @@ import colors from '../theme/colors';
 import tipografia from '../theme/tipografia';
 
 // Linha com texto à direita ("——— Ver mais", "——— Ver mais fotos")
-export default function LinhaVerMais({ texto = 'Ver mais', onPress }) {
+export default function LinhaVerMais({ texto = 'Ver mais', onPress, estilo }) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, estilo]}>
       <View style={styles.traco} />
       <TouchableOpacity onPress={onPress} disabled={!onPress}>
         <Text style={styles.texto}>{texto}</Text>
