@@ -1217,3 +1217,58 @@ ALTER TABLE public.produtos
     forma_cobranca IN ('preco', 'sob_consulta', 'orcamento_gratuito')
     AND (forma_cobranca <> 'preco' OR preco IS NOT NULL));
 ALTER TABLE public.produtos ALTER COLUMN preco DROP NOT NULL;
+
+--
+-- Anúncios pagos (banner do carrossel ou faixa entre as seções)
+--
+
+CREATE TABLE IF NOT EXISTS public.anuncios (
+    id_anuncio serial PRIMARY KEY,
+    empresa_id integer NOT NULL REFERENCES public.empresas(id_empresa) ON DELETE CASCADE,
+    formato character varying(10) DEFAULT 'banner' NOT NULL CHECK (formato IN ('banner', 'faixa')),
+    imagem_url character varying(500) NOT NULL,
+    promocao_id integer REFERENCES public.promocoes(id_promocao) ON DELETE SET NULL,
+    link_externo character varying(500),
+    valor_investido numeric(10,2) NOT NULL CHECK (valor_investido > 0),
+    dias integer NOT NULL CHECK (dias BETWEEN 1 AND 30),
+    data_inicio timestamp with time zone NOT NULL,
+    data_fim timestamp with time zone NOT NULL,
+    status character varying(25) DEFAULT 'aguardando_pagamento' NOT NULL
+      CHECK (status IN ('aguardando_pagamento', 'ativo', 'cancelado')),
+    criado_em timestamp with time zone DEFAULT now() NOT NULL,
+    CHECK (data_fim > data_inicio),
+    CHECK (promocao_id IS NULL OR link_externo IS NULL)
+);
+
+CREATE INDEX IF NOT EXISTS anuncios_empresa_idx ON public.anuncios (empresa_id);
+CREATE INDEX IF NOT EXISTS anuncios_vigencia_idx ON public.anuncios (formato, status, data_inicio, data_fim);
+
+--
+-- Pagamentos dos anúncios (simulados por enquanto)
+--
+
+CREATE TABLE IF NOT EXISTS public.pagamentos (
+    id_pagamento serial PRIMARY KEY,
+    anuncio_id integer NOT NULL REFERENCES public.anuncios(id_anuncio) ON DELETE CASCADE,
+    valor numeric(10,2) NOT NULL CHECK (valor > 0),
+    status character varying(20) DEFAULT 'pendente' NOT NULL
+      CHECK (status IN ('pendente', 'aprovado', 'recusado', 'estornado')),
+    gateway_id character varying(100),
+    criado_em timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS pagamentos_anuncio_idx ON public.pagamentos (anuncio_id);
+
+--
+-- Impressões e cliques dos anúncios
+--
+
+CREATE TABLE IF NOT EXISTS public.eventos_anuncio (
+    id_evento bigserial PRIMARY KEY,
+    anuncio_id integer NOT NULL REFERENCES public.anuncios(id_anuncio) ON DELETE CASCADE,
+    tipo character varying(10) NOT NULL CHECK (tipo IN ('impressao', 'clique')),
+    id_usuario integer REFERENCES public.usuarios(id_usuario) ON DELETE SET NULL,
+    criado_em timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS eventos_anuncio_idx ON public.eventos_anuncio (anuncio_id, tipo, criado_em);

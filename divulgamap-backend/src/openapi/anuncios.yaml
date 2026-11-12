@@ -1,0 +1,154 @@
+tags:
+  - name: anuncios
+    description: Anúncios pagos (banner do carrossel ou faixa entre as seções), com pagamento simulado e métricas
+
+components:
+  parameters:
+    IdAnuncio: { in: path, name: id, required: true, schema: { type: integer }, description: Número do anúncio (id_anuncio), example: 1 }
+
+paths:
+  /anuncios:
+    post:
+      tags: [anuncios]
+      summary: Cria um anúncio para uma empresa aprovada (só o dono)
+      description: |
+        O pagamento é simulado e aprovado na hora, e o anúncio começa a valer no mesmo momento.
+        Regras: 1 a 30 dias, mínimo de R$ 1 por dia e até R$ 10.000. O peso no ranking é `valor_investido ÷ dias`.
+        O clique pode levar a uma oferta da empresa (`promocao_id`) ou a um link externo (`link_externo`), nunca aos dois;
+        sem nenhum, leva ao perfil da empresa.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empresa_id, imagem_url, valor_investido, dias]
+              properties:
+                empresa_id: { type: integer }
+                formato: { type: string, enum: [banner, faixa], default: banner }
+                imagem_url: { type: string, maxLength: 500 }
+                valor_investido: { type: number, minimum: 1, maximum: 10000 }
+                dias: { type: integer, minimum: 1, maximum: 30 }
+                promocao_id: { type: integer, nullable: true }
+                link_externo: { type: string, maxLength: 500, nullable: true }
+            example:
+              empresa_id: 1
+              imagem_url: https://picsum.photos/800/300
+              valor_investido: 30
+              dias: 3
+      responses:
+        '201':
+          description: Anúncio criado, já ativo, com o pagamento aprovado
+          content:
+            application/json:
+              example: { id_anuncio: 1, empresa_id: 1, formato: banner, imagem_url: 'https://picsum.photos/800/300', promocao_id: null, link_externo: null, valor_investido: '30.00', dias: 3, data_inicio: '2026-11-12T13:00:00.000Z', data_fim: '2026-11-15T13:00:00.000Z', status: ativo, pagamento: { id_pagamento: 1, anuncio_id: 1, valor: '30.00', status: aprovado, gateway_id: 'simulado-…' } }
+        '400':
+          description: Dados inválidos, valor abaixo do mínimo ou empresa não aprovada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /anuncios/ativos:
+    get:
+      tags: [anuncios]
+      summary: Anúncios no ar (pública)
+      description: |
+        Só de empresas aprovadas, do maior peso (valor ÷ dias) para o menor, com sorteio entre pesos iguais.
+        `destino` diz o que abre no clique: `link` (link_externo), `oferta` (promocao_id, se a oferta ainda estiver em vigor) ou `empresa`.
+      parameters:
+        - { in: query, name: formato, schema: { type: string, enum: [banner, faixa] }, description: Sem ele, vêm os dois formatos }
+      responses:
+        '200':
+          description: Até 10 anúncios por formato
+          content:
+            application/json:
+              example:
+                - { id_anuncio: 1, formato: banner, imagem_url: 'https://picsum.photos/800/300', empresa_id: 1, empresa_nome: Padaria São João, peso: 10, destino: empresa, link_externo: null, promocao_id: null }
+        '400': { $ref: '#/components/responses/DadosInvalidos' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /anuncios/minhas:
+    get:
+      tags: [anuncios]
+      summary: Anúncios das empresas do usuário logado
+      description: "`situacao`: `no_ar`, `agendado`, `encerrado`, `aguardando_pagamento` ou `cancelado`."
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Anúncios com totais de impressões e cliques, do mais novo ao mais antigo
+          content:
+            application/json:
+              example:
+                - { id_anuncio: 1, empresa_id: 1, empresa_nome: Padaria São João, formato: banner, valor_investido: '30.00', dias: 3, peso: 10, situacao: no_ar, impressoes: 5, cliques: 2 }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /anuncios/{id}/impressao:
+    post:
+      tags: [anuncios]
+      summary: Registra que o anúncio apareceu na tela (pública; login opcional)
+      description: Só conta anúncio no ar. Com login, guarda quem viu; o próprio dono não conta (`registrado` false).
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      responses:
+        '201':
+          description: Impressão registrada
+          content:
+            application/json:
+              example: { registrado: true }
+        '200':
+          description: Visto pelo próprio dono, não registrado
+          content:
+            application/json:
+              example: { registrado: false }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /anuncios/{id}/clique:
+    post:
+      tags: [anuncios]
+      summary: Registra um toque no anúncio (pública; login opcional)
+      description: Mesmas regras da impressão.
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      responses:
+        '201':
+          description: Clique registrado
+          content:
+            application/json:
+              example: { registrado: true }
+        '200':
+          description: Tocado pelo próprio dono, não registrado
+          content:
+            application/json:
+              example: { registrado: false }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /anuncios/{id}/metricas:
+    get:
+      tags: [anuncios]
+      summary: Impressões e cliques por dia e os totais (só o dono)
+      description: Um item por dia, do início do anúncio até hoje (ou até o fim), no horário de Brasília, inclusive os dias sem nada.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      responses:
+        '200':
+          description: Métricas do anúncio
+          content:
+            application/json:
+              example:
+                anuncio: { id_anuncio: 1, empresa_id: 1, formato: banner, situacao: no_ar }
+                totais: { impressoes: 5, cliques: 2, taxa_de_cliques: 40 }
+                por_dia:
+                  - { dia: '2026-11-12', impressoes: 5, cliques: 2 }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }

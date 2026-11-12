@@ -16,6 +16,7 @@ const categoriasRoutes = require('./routes/categorias.routes');
 const historicoRoutes = require('./routes/historico.routes');
 const feedbackRoutes = require('./routes/feedback.routes');
 const buscaRoutes = require('./routes/busca.routes');
+const anunciosRoutes = require('./routes/anuncios.routes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/categorias', categoriasRoutes);
 app.use('/historico', historicoRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/busca', buscaRoutes);
+app.use('/anuncios', anunciosRoutes);
 
 // Documentação da API (Swagger)
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoApi, {
