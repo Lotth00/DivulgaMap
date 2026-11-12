@@ -30,6 +30,9 @@ import FilaAprovacaoScreen from '../screens/admin/FilaAprovacaoScreen';
 import MeusAnunciosScreen from '../screens/empresa/MeusAnunciosScreen';
 import ImpulsionarScreen from '../screens/empresa/ImpulsionarScreen';
 import MetricasScreen from '../screens/empresa/MetricasScreen';
+import SeuPerfilScreen from '../screens/conta/SeuPerfilScreen';
+import EditarPerfilScreen from '../screens/conta/EditarPerfilScreen';
+import ImagemPerfilScreen from '../screens/conta/ImagemPerfilScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -74,6 +77,9 @@ export default function Navigation() {
         <Stack.Screen name="MeusAnuncios" component={MeusAnunciosScreen} />
         <Stack.Screen name="Impulsionar" component={ImpulsionarScreen} />
         <Stack.Screen name="Metricas" component={MetricasScreen} />
+        <Stack.Screen name="SeuPerfil" component={SeuPerfilScreen} />
+        <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
+        <Stack.Screen name="ImagemPerfil" component={ImagemPerfilScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -89,7 +89,7 @@ export default function ContaScreen({ navigation }) {
         </View>
 
         <View style={styles.grupo}>
-          <ItemMenu icone={require('../../assets/images/icones/perfil.png')} texto="Seu perfil" posicao="primeiro" onPress={() => avisarEmBreve('Seu perfil')} />
+          <ItemMenu icone={require('../../assets/images/icones/perfil.png')} texto="Seu perfil" posicao="primeiro" onPress={() => navigation.navigate('SeuPerfil')} />
           <ItemMenu icone={require('../../assets/images/icones/empresa.png')} texto={itemEmpresa.texto} posicao="ultimo" onPress={itemEmpresa.onPress} />
         </View>
 
