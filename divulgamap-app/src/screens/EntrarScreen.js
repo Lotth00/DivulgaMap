@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
-  Image, ImageBackground, KeyboardAvoidingView, Platform, ScrollView,
+  Image, ImageBackground, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,7 +35,7 @@ export default function EntrarScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: colors.cinzaClaro }}>
       <StatusBar style="light" />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           
           <ImageBackground

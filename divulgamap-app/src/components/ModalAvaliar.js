@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Modal, Pressable, View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import Estrelas from './Estrelas';
@@ -70,7 +70,7 @@ export default function ModalAvaliar({ visivel, empresa, avaliacaoAtual, onFecha
 
   return (
     <Modal visible={visivel} transparent animationType="slide" onRequestClose={onFechar}>
-      <KeyboardAvoidingView style={styles.tela} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.tela} behavior="padding">
         <Pressable style={styles.fundo} onPress={onFechar} />
         <View style={[styles.folha, { paddingBottom: insets.bottom + 20 }]}>
           <Text style={styles.titulo}>{avaliacaoAtual ? 'Editar sua avaliação' : 'Avaliar'}</Text>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Modal, Pressable, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Modal, Pressable, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
@@ -126,7 +126,7 @@ export default function ModalSalvar({ visivel, tipoItem, itemId, nomeItem, onFec
 
   return (
     <Modal visible={visivel} transparent animationType="slide" onRequestClose={onFechar}>
-      <KeyboardAvoidingView style={styles.tela} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.tela} behavior="padding">
         <Pressable style={styles.fundo} onPress={onFechar} />
         <View style={[styles.folha, { paddingBottom: insets.bottom + 20 }]}>
           <Text style={styles.titulo}>Salvar em</Text>

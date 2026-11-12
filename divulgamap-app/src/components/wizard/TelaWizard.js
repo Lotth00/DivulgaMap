@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Cabecalho from '../Cabecalho';
@@ -15,7 +15,7 @@ export default function TelaWizard({
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <KeyboardAvoidingView style={styles.tela} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.tela} behavior="padding">
       <StatusBar style="dark" />
       <Cabecalho onVoltar={() => navigation.goBack()} />
       <BarraProgressoWizard passo={passo} />

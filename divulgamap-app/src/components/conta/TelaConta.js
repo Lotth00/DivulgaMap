@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Cabecalho from '../Cabecalho';
@@ -20,7 +20,7 @@ export default function TelaConta({
   else if (falhou) corpo = <ErroComTentarDeNovo onTentarDeNovo={onTentarDeNovo} />;
 
   return (
-    <View style={styles.tela}>
+    <KeyboardAvoidingView style={styles.tela} behavior="padding">
       <StatusBar style="dark" />
       <Cabecalho onVoltar={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
@@ -31,7 +31,7 @@ export default function TelaConta({
         {corpo}
       </ScrollView>
       {rodape ? <View style={[styles.rodape, { paddingBottom: insets.bottom + 16 }]}>{rodape}</View> : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
