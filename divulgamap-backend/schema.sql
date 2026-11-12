@@ -1285,3 +1285,22 @@ ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS ramo character varying(60);
 
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS preferencias_notificacao jsonb
   DEFAULT '{"ofertas_gerais": true, "empresas_proximas": true, "recomendacoes": true}'::jsonb NOT NULL;
+
+--
+-- Registro de atividades: quem fez o quê, quando e de onde (guardado por 90 dias)
+--
+
+CREATE TABLE IF NOT EXISTS public.logs_atividade (
+    id_log bigserial PRIMARY KEY,
+    id_usuario integer REFERENCES public.usuarios(id_usuario) ON DELETE SET NULL,
+    acao character varying(40) NOT NULL,
+    alvo_tipo character varying(20),
+    alvo_id integer,
+    detalhes jsonb,
+    ip character varying(45),
+    aparelho character varying(200),
+    criado_em timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS logs_atividade_usuario_idx ON public.logs_atividade (id_usuario, criado_em DESC);
+CREATE INDEX IF NOT EXISTS logs_atividade_acao_idx ON public.logs_atividade (acao, criado_em DESC);
