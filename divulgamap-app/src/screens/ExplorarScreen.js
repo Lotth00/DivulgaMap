@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { View, Text, StyleSheet } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import api from '../services/api';
 import TelaMapaBase from '../components/TelaMapaBase';
 import CarrosselBanners from '../components/CarrosselBanners';
@@ -10,7 +11,7 @@ import CartaoOferta from '../components/CartaoOferta';
 import CartaoPromocao from '../components/CartaoPromocao';
 import CartaoEmpresa from '../components/CartaoEmpresa';
 import CartaoServico from '../components/CartaoServico';
-import AnuncioFaixa, { ANUNCIOS_EXEMPLO } from '../components/AnuncioFaixa';
+import AnuncioFaixa, { abrirAnuncio, registrarEventoAnuncio } from '../components/AnuncioFaixa';
 import LinhaVerMais from '../components/LinhaVerMais';
 import AbasPromocoes from '../components/AbasPromocoes';
 import Carregando from '../components/Carregando';
@@ -49,6 +50,40 @@ export default function ExplorarScreen({ navigation }) {
   const ultimaOferta = useRef(0);
   const ultimoServico = useRef(0);
   const [atualizando, setAtualizando] = useState(false);
+  const [banners, setBanners] = useState([]);
+  const [faixas, setFaixas] = useState([]);
+  const anunciosVistos = useRef(new Set());
+  const focada = useIsFocused();
+
+  // Anúncios de novo a cada abertura da tela; as impressões voltam a contar
+  useFocusEffect(useCallback(() => {
+    anunciosVistos.current = new Set();
+    buscarAnuncios();
+  }, []));
+
+  async function buscarAnuncios() {
+    try {
+      const [respostaBanners, respostaFaixas] = await Promise.all([
+        api.get('/anuncios/ativos', { params: { formato: 'banner' } }),
+        api.get('/anuncios/ativos', { params: { formato: 'faixa' } }),
+      ]);
+      setBanners(respostaBanners.data);
+      setFaixas(respostaFaixas.data);
+    } catch (erro) {
+      // Sem anúncios, carrossel e faixas somem
+      setBanners([]);
+      setFaixas([]);
+    }
+  }
+
+  // Uma impressão por anúncio a cada abertura da tela
+  const registrarImpressao = useCallback((id) => {
+    if (anunciosVistos.current.has(id)) return;
+    anunciosVistos.current.add(id);
+    registrarEventoAnuncio(id, 'impressao');
+  }, []);
+
+  const tocarAnuncio = useCallback((anuncio) => abrirAnuncio(anuncio, navigation), [navigation]);
 
   // Empresas do mapa, filtradas pelo chip de categoria
   useEffect(() => {
@@ -84,7 +119,7 @@ export default function ExplorarScreen({ navigation }) {
   // Arrastar para baixo: busca tudo de novo
   async function atualizar() {
     setAtualizando(true);
-    await Promise.all([buscarEmpresas(), buscarOfertas(), buscarServicos()]);
+    await Promise.all([buscarEmpresas(), buscarOfertas(), buscarServicos(), buscarAnuncios()]);
     setAtualizando(false);
   }
 
@@ -180,7 +215,7 @@ export default function ExplorarScreen({ navigation }) {
     const promocoesDaAba = secoes[abaPromocao];
     const verMais = (titulo, tipo, itens) => () => navigation.navigate('ListaSecao', { titulo, tipo, itens });
 
-    // Seções com conteúdo; entre uma e outra entra um anúncio
+    // Seções com conteúdo; entre uma e outra entra uma faixa de anúncio, se houver
     const blocos = [];
     if (falhouOfertas) {
       blocos.push(<ErroComTentarDeNovo key="erro" mensagem="Não foi possível carregar as ofertas." onTentarDeNovo={buscarOfertas} />);
@@ -252,12 +287,19 @@ export default function ExplorarScreen({ navigation }) {
 
     return (
       <>
-        <CarrosselBanners />
+        <CarrosselBanners banners={banners} ativo={focada} onImpressao={registrarImpressao} onTocar={tocarAnuncio} />
         {blocos.length === 0 && <EstadoVazio icone="pricetags-outline" mensagem="Nenhuma oferta ativa por aqui agora." />}
         {blocos.map((bloco, indice) => (
           <React.Fragment key={bloco.key}>
             {bloco}
-            {indice < blocos.length - 1 && <AnuncioFaixa anuncio={ANUNCIOS_EXEMPLO[indice % ANUNCIOS_EXEMPLO.length]} />}
+            {indice < blocos.length - 1 && (faixas[indice] ? (
+              <AnuncioFaixa
+                anuncio={faixas[indice]}
+                ativo={focada}
+                onImpressao={registrarImpressao}
+                onPress={() => tocarAnuncio(faixas[indice])}
+              />
+            ) : <View style={styles.espacoEntreSecoes} />)}
           </React.Fragment>
         ))}
       </>
@@ -284,6 +326,7 @@ export default function ExplorarScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   secao: {},
+  espacoEntreSecoes: { height: 28 },
   verMais: { marginTop: 10, marginBottom: 0 },
   carrossel: { marginHorizontal: -20 },
   conteudoCarrossel: { paddingHorizontal: 20, paddingVertical: 4 },
