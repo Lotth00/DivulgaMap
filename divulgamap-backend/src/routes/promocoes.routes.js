@@ -319,8 +319,14 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
     const data_fim = normalizarData(req.body.data_fim);
     const empresa_id = req.empresa.id_empresa;
 
-    if (typeof titulo !== 'string' || !titulo.trim()) {
-      return res.status(400).json({ erro: 'titulo é obrigatório.' });
+    if (typeof titulo !== 'string' || !titulo.trim() || titulo.trim().length > 150) {
+      return res.status(400).json({ erro: 'titulo é obrigatório e pode ter até 150 letras.' });
+    }
+    if (descricao !== undefined && descricao !== null && typeof descricao !== 'string') {
+      return res.status(400).json({ erro: 'descricao precisa ser texto.' });
+    }
+    if (condicao !== undefined && condicao !== null && (typeof condicao !== 'string' || condicao.trim().length > 255)) {
+      return res.status(400).json({ erro: 'condicao precisa ser texto de até 255 letras.' });
     }
 
     const erroDeValidacao = validarCamposPorTipo({ tipo, desconto_percentual, condicao, data_inicio, data_fim });
@@ -345,7 +351,7 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
       `INSERT INTO promocoes
         (empresa_id, produto_id, tipo, titulo, descricao, condicao, desconto_percentual, data_inicio, data_fim, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'agendada') RETURNING ${camposPromocao()}`,
-      [empresa_id, produto_id || null, tipo, titulo.trim(), descricao, condicao || null, desconto_percentual || null, data_inicio, data_fim]
+      [empresa_id, produto_id || null, tipo, titulo.trim(), descricao?.trim() || null, condicao?.trim() || null, desconto_percentual || null, data_inicio, data_fim]
     );
 
     return res.status(201).json(novaPromocao.rows[0]);

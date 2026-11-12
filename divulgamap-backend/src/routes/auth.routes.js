@@ -6,6 +6,27 @@ const registrarLog = require('../utils/registrarLog');
 
 const router = express.Router();
 
+// Limite de logins errados por e-mail e aparelho (contra quem tenta adivinhar a senha)
+const MAXIMO_FALHAS = 8;
+const JANELA_FALHAS = 15 * 60 * 1000;
+const falhasDeLogin = new Map();
+
+function chaveDeLogin(req, email) {
+  return `${email}|${req.ip}`;
+}
+
+function bloqueado(chave) {
+  const agora = Date.now();
+  const recentes = (falhasDeLogin.get(chave) || []).filter((momento) => agora - momento < JANELA_FALHAS);
+  if (recentes.length) falhasDeLogin.set(chave, recentes);
+  else falhasDeLogin.delete(chave);
+  return recentes.length >= MAXIMO_FALHAS;
+}
+
+function registrarFalha(chave) {
+  falhasDeLogin.set(chave, [...(falhasDeLogin.get(chave) || []), Date.now()]);
+}
+
 // E-mail em minúsculas e sem espaços nas pontas
 function normalizarEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : email;
@@ -76,6 +97,11 @@ router.post('/login', async (req, res) => {
     if (typeof email !== 'string' || !email || typeof senha !== 'string' || !senha) {
       return res.status(400).json({ erro: 'Informe o e-mail e a senha.' });
     }
+    const chave = chaveDeLogin(req, email);
+    if (bloqueado(chave)) {
+      await registrarLog(req, { acao: 'login_falhou', detalhes: { email_tentado: email.slice(0, 150), motivo: 'bloqueado_por_tentativas' } });
+      return res.status(429).json({ erro: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.' });
+    }
 
     // 1. Busca o usuário pelo e-mail
     const resultado = await pool.query(
@@ -85,6 +111,7 @@ router.post('/login', async (req, res) => {
     const usuario = resultado.rows[0];
 
     if (!usuario) {
+      registrarFalha(chave);
       await registrarLog(req, { acao: 'login_falhou', detalhes: { email_tentado: email.slice(0, 150), motivo: 'conta_inexistente' } });
       return res.status(401).json({ erro: 'E-mail ou senha inválidos.' });
     }
@@ -93,6 +120,7 @@ router.post('/login', async (req, res) => {
     const senhaCorreta = await bcrypt.compare(senha, usuario.senha_hash);
 
     if (!senhaCorreta) {
+      registrarFalha(chave);
       await registrarLog(req, { acao: 'login_falhou', usuarioId: usuario.id_usuario, detalhes: { motivo: 'senha_errada' } });
       return res.status(401).json({ erro: 'E-mail ou senha inválidos.' });
     }
@@ -104,6 +132,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    falhasDeLogin.delete(chave);
     await registrarLog(req, { acao: 'login', usuarioId: usuario.id_usuario });
     return res.json({
       token,

@@ -3,6 +3,18 @@ const pool = require('../config/db');
 const verificarToken = require('../middlewares/auth');
 const verificarDonoEmpresa = require('../middlewares/donoEmpresa');
 const idValido = require('../utils/id');
+const jwt = require('jsonwebtoken');
+
+// Usuário do token, se houver um válido (rotas públicas)
+function usuarioOpcional(req) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return null;
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
 
 const router = express.Router();
 
@@ -12,6 +24,17 @@ router.get('/empresa/:empresaId', async (req, res) => {
     const empresaId = idValido(req.params.empresaId);
     if (!empresaId) {
       return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
+    // Empresa ainda não aprovada: só o dono ou o admin veem os itens
+    const empresa = await pool.query('SELECT status, id_usuario FROM empresas WHERE id_empresa = $1', [empresaId]);
+    if (!empresa.rows[0]) {
+      return res.status(404).json({ erro: 'Empresa não encontrada.' });
+    }
+    if (empresa.rows[0].status !== 'aprovada') {
+      const usuario = usuarioOpcional(req);
+      if (!usuario || (usuario.id !== empresa.rows[0].id_usuario && usuario.tipo !== 'admin')) {
+        return res.status(404).json({ erro: 'Empresa não encontrada.' });
+      }
     }
     const resultado = await pool.query(
       `SELECT p.*, c.nome AS categoria_nome
@@ -133,8 +156,12 @@ router.post('/', verificarToken, verificarDonoEmpresa, async (req, res) => {
 const multer = require('multer');
 const xlsx = require('xlsx');
 
+const TAMANHO_MAXIMO_PLANILHA = 2 * 1024 * 1024;
+const MAXIMO_LINHAS_PLANILHA = 500;
+
 const upload = multer({
   storage: multer.memoryStorage(),
+  limits: { fileSize: TAMANHO_MAXIMO_PLANILHA },
   fileFilter: (req, file, callback) => {
     const extensoesAceitas = ['.xlsx', '.xls', '.csv'];
     const extensaoDoArquivo = file.originalname.slice(file.originalname.lastIndexOf('.')).toLowerCase();
@@ -164,6 +191,9 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
     const planilha = xlsx.read(req.file.buffer, { type: 'buffer' });
     const primeiraAba = planilha.Sheets[planilha.SheetNames[0]];
     const linhas = xlsx.utils.sheet_to_json(primeiraAba);
+    if (linhas.length > MAXIMO_LINHAS_PLANILHA) {
+      return res.status(400).json({ erro: `A planilha pode ter até ${MAXIMO_LINHAS_PLANILHA} itens.` });
+    }
     // Prévia para o app mostrar a planilha (cabeçalho + até 50 linhas)
     const previa = xlsx.utils.sheet_to_json(primeiraAba, { header: 1, defval: '' }).slice(0, 51);
 
@@ -194,6 +224,8 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
       const nomeDigitado = String(linha[COLUNA_NOME] || '').trim();
       if (!nomeDigitado) {
         problemasDaLinha.push({ coluna: COLUNA_NOME, motivo: 'não pode ficar vazio' });
+      } else if (nomeDigitado.length > 150) {
+        problemasDaLinha.push({ coluna: COLUNA_NOME, motivo: 'pode ter até 150 letras' });
       }
 
       // Categoria: precisa existir no cadastro de categorias do app
@@ -210,7 +242,7 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
 
       // Preço Regular: obrigatório, numérico, maior que zero
       const precoDigitado = Number(linha[COLUNA_PRECO]);
-      if (!linha[COLUNA_PRECO] || isNaN(precoDigitado) || precoDigitado <= 0) {
+      if (!linha[COLUNA_PRECO] || isNaN(precoDigitado) || precoDigitado <= 0 || precoDigitado >= 100000000) {
         problemasDaLinha.push({ coluna: COLUNA_PRECO, motivo: 'deve ser um número maior que zero' });
       }
 
@@ -218,6 +250,8 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
       const unidadeDigitada = String(linha[COLUNA_UNIDADE] || '').trim();
       if (!unidadeDigitada) {
         problemasDaLinha.push({ coluna: COLUNA_UNIDADE, motivo: 'não pode ficar vazia (ex: un, kg, hora)' });
+      } else if (unidadeDigitada.length > 20) {
+        problemasDaLinha.push({ coluna: COLUNA_UNIDADE, motivo: 'pode ter até 20 letras' });
       }
 
       if (problemasDaLinha.length > 0) {
@@ -259,7 +293,7 @@ router.post('/:empresaId/planilha', verificarToken, verificarDonoEmpresa, upload
     return res.status(201).json({ mensagem: `${produtosValidos.length} itens importados com sucesso.`, previa });
   } catch (erro) {
     console.error(erro);
-    return res.status(500).json({ erro: erro.message || 'Erro ao processar planilha.' });
+    return res.status(500).json({ erro: 'Erro ao processar a planilha. Confira o arquivo e tente de novo.' });
   }
 });
 
@@ -393,7 +427,8 @@ router.delete('/:id', verificarToken, carregarProduto, verificarDonoEmpresa, asy
 router.use((erro, req, res, next) => {
   if (erro) {
     console.error(erro);
-    return res.status(400).json({ erro: erro.message || 'Erro ao processar o arquivo enviado.' });
+    const mensagem = erro.code === 'LIMIT_FILE_SIZE' ? 'A planilha pode ter até 2 MB.' : erro.message;
+    return res.status(400).json({ erro: mensagem || 'Erro ao processar o arquivo enviado.' });
   }
   next();
 });

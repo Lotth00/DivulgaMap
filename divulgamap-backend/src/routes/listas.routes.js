@@ -5,6 +5,10 @@ const verificarToken = require('../middlewares/auth');
 const router = express.Router();
 
 const TAMANHO_MAXIMO_NOME = 100;
+const FAVORITOS = 'favoritos';
+
+// "Favoritos" é a lista fixa de cada conta (a estrela da pesquisa salva nela)
+const ehFavoritos = (nome) => typeof nome === 'string' && nome.trim().toLowerCase() === FAVORITOS;
 
 // Nome da lista sem espaços nas pontas, ou null se inválido
 function validarNome(nome) {
@@ -74,6 +78,9 @@ router.post('/', verificarToken, async (req, res) => {
     if (!['privada', 'publica'].includes(privacidade)) {
       return res.status(400).json({ erro: 'privacidade deve ser "privada" ou "publica".' });
     }
+    if (ehFavoritos(nome)) {
+      return res.status(400).json({ erro: 'Você já tem a lista Favoritos. Escolha outro nome.' });
+    }
     const novaLista = await pool.query(
       'INSERT INTO listas (usuario_id, nome, privacidade) VALUES ($1, $2, $3) RETURNING *',
       [req.usuario.id, nome, privacidade]
@@ -94,6 +101,12 @@ router.put('/:id', verificarToken, async (req, res) => {
     }
     const lista = await buscarListaDoUsuario(req, res);
     if (!lista) return;
+    if (ehFavoritos(lista.nome)) {
+      return res.status(400).json({ erro: 'A lista Favoritos é fixa e não pode ser renomeada.' });
+    }
+    if (ehFavoritos(nome)) {
+      return res.status(400).json({ erro: 'Você já tem a lista Favoritos. Escolha outro nome.' });
+    }
 
     const atualizada = await pool.query(
       'UPDATE listas SET nome = $1, atualizado_em = NOW() WHERE id_lista = $2 RETURNING *',
@@ -111,6 +124,9 @@ router.delete('/:id', verificarToken, async (req, res) => {
   try {
     const lista = await buscarListaDoUsuario(req, res);
     if (!lista) return;
+    if (ehFavoritos(lista.nome)) {
+      return res.status(400).json({ erro: 'A lista Favoritos é fixa e não pode ser excluída.' });
+    }
 
     await pool.query('DELETE FROM listas WHERE id_lista = $1', [lista.id_lista]);
     return res.json({ mensagem: 'Lista excluída.' });
