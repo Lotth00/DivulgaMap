@@ -148,12 +148,11 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         '200':
-          description: Lista das empresas com status `pendente_aprovacao`
+          description: Empresas com status `pendente_aprovacao`, com endereço, categorias, fotos, total de produtos e o dono
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Empresa' }
+              example:
+                - { id_empresa: 7, nome_fantasia: Doceria Teste, tipo: comercio, telefone: '(51) 99999-0000', endereco: 'Rua Júlio de Castilhos, 100', bairro: Centro, referencia: null, dono_nome: Maria, dono_email: maria@exemplo.com, categorias: [Alimentação], fotos: [], total_produtos: 3, verificado_em: '2026-11-10T14:00:00.000Z', metodo_verificacao: email, enviada_para_aprovacao_em: '2026-11-10T14:05:00.000Z' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '500': { $ref: '#/components/responses/ErroServidor' }
@@ -281,6 +280,22 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
+        '401': { $ref: '#/components/responses/SemToken' }
+        '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '500': { $ref: '#/components/responses/ErroServidor' }
+
+  /empresas/{id}/edicao:
+    get:
+      tags: [empresas]
+      summary: Detalhe da empresa em qualquer situação (só o dono ou o admin)
+      description: Usado na edição e no reenvio de uma empresa rejeitada. Mesmos campos do detalhe público, mais `status` e `motivo_rejeicao`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdEmpresa'
+      responses:
+        '200':
+          description: Dados completos da empresa
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
@@ -572,8 +587,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [motivo]
               properties:
-                motivo: { type: string }
+                motivo: { type: string, maxLength: 500 }
             example:
               motivo: Endereço incompleto.
       responses:
@@ -583,7 +599,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Empresa' }
         '400':
-          description: A empresa é um rascunho ou já está rejeitada
+          description: Motivo vazio, ou a empresa é um rascunho ou já está rejeitada
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Erro' }
@@ -599,11 +615,11 @@ paths:
       security: [{ bearerAuth: [] }]
       responses:
         '200':
-          description: Lista de solicitações pendentes, com o nome da empresa
+          description: Lista de solicitações pendentes, com a empresa e quem pediu
           content:
             application/json:
               example:
-                - { id_solicitacao: 1, empresa_id: 1, id_usuario: 3, tipo: reivindicacao, mensagem: Sou a dona., status: pendente, nome_fantasia: Padaria São João }
+                - { id_solicitacao: 1, empresa_id: 1, id_usuario: 3, tipo: reivindicacao, mensagem: Sou a dona., status: pendente, nome_fantasia: Padaria São João, status_empresa: aprovada, solicitante_nome: Ana, solicitante_email: ana@exemplo.com }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '500': { $ref: '#/components/responses/ErroServidor' }
@@ -612,13 +628,18 @@ paths:
     patch:
       tags: [empresas]
       summary: Aprova uma solicitação (só admin)
-      description: Reivindicação aprovada passa a empresa para quem pediu; denúncia aprovada rejeita a empresa.
+      description: Reivindicação aprovada passa a empresa para quem pediu e encerra as outras reivindicações dela; denúncia aprovada rejeita a empresa.
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdSolicitacao'
       responses:
         '200':
           description: Solicitação aprovada
+        '400':
+          description: A solicitação já foi analisada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
@@ -634,6 +655,12 @@ paths:
       responses:
         '200':
           description: Solicitação rejeitada
+        '400':
+          description: A solicitação já foi analisada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erro' }
         '401': { $ref: '#/components/responses/SemToken' }
         '403': { $ref: '#/components/responses/Proibido' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
         '500': { $ref: '#/components/responses/ErroServidor' }

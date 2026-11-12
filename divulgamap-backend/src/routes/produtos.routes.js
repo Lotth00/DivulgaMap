@@ -286,7 +286,7 @@ async function carregarProduto(req, res, next) {
 const FORMAS_COBRANCA = ['preco', 'sob_consulta', 'orcamento_gratuito'];
 
 // Campos editáveis do produto, validados; devolve { campos } ou { erro }
-async function validarEdicaoProduto(corpo) {
+async function validarEdicaoProduto(corpo, formaAtual = 'preco') {
   const campos = {};
 
   if (corpo.nome !== undefined) {
@@ -303,7 +303,7 @@ async function validarEdicaoProduto(corpo) {
   if (corpo.preco !== undefined) {
     const semPreco = corpo.preco === null || corpo.preco === '';
     const preco = Number(corpo.preco);
-    if (semPreco && campos.forma_cobranca && campos.forma_cobranca !== 'preco') {
+    if (semPreco && (campos.forma_cobranca ?? formaAtual) !== 'preco') {
       campos.preco = null;
     } else if (semPreco || !Number.isFinite(preco) || preco <= 0 || preco >= 100000000) {
       return { erro: 'preco deve ser um número maior que zero.' };
@@ -352,7 +352,7 @@ async function validarEdicaoProduto(corpo) {
 // EDITAR um produto (só o dono); só os campos enviados mudam
 router.put('/:id', verificarToken, carregarProduto, verificarDonoEmpresa, async (req, res) => {
   try {
-    const { campos, erro } = await validarEdicaoProduto(req.body || {});
+    const { campos, erro } = await validarEdicaoProduto(req.body || {}, req.produto.forma_cobranca);
     if (erro) {
       return res.status(400).json({ erro });
     }

@@ -228,10 +228,29 @@ router.get('/rascunho-atual', verificarToken, async (req, res) => {
   }
 });
 
+// Fila de aprovação: empresas esperando, com os dados do cadastro e o dono
 router.get('/pendentes', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT * FROM empresas WHERE status = 'pendente_aprovacao' ORDER BY enviada_para_aprovacao_em ASC`
+      `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site, e.foto_perfil_url,
+              e.verificado_em, e.metodo_verificacao, e.data_cadastro, e.enviada_para_aprovacao_em,
+              en.endereco, en.bairro, en.referencia,
+              u.nome AS dono_nome, u.email AS dono_email,
+              COALESCE((SELECT json_agg(c.nome ORDER BY c.nome)
+                        FROM empresa_categoria ec JOIN categorias c ON c.id_categoria = ec.categoria_id
+                        WHERE ec.empresa_id = e.id_empresa), '[]') AS categorias,
+              COALESCE((SELECT json_agg(f.url ORDER BY f.ordem, f.id_foto)
+                        FROM fotos_empresa f WHERE f.empresa_id = e.id_empresa), '[]') AS fotos,
+              (SELECT COUNT(*)::int FROM produtos p
+               WHERE p.empresa_id = e.id_empresa AND p.disponivel = TRUE) AS total_produtos
+       FROM empresas e
+       JOIN usuarios u ON u.id_usuario = e.id_usuario
+       LEFT JOIN LATERAL (
+         SELECT endereco, bairro, referencia FROM enderecos
+         WHERE empresa_id = e.id_empresa ORDER BY id_endereco LIMIT 1
+       ) en ON TRUE
+       WHERE e.status = 'pendente_aprovacao'
+       ORDER BY e.enviada_para_aprovacao_em ASC`
     );
     return res.json(resultado.rows);
   } catch (erro) {
@@ -270,50 +289,69 @@ router.get('/minhas', verificarToken, async (req, res) => {
   }
 });
 
+// Detalhe completo da empresa (só aprovada, ou em qualquer situação) ou null
+async function detalheEmpresa(id, apenasAprovada = true) {
+  const resultado = await pool.query(
+    `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site, e.status, e.motivo_rejeicao,
+            e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro, e.foto_perfil_url,
+            en.endereco, en.bairro, en.referencia, en.latitude, en.longitude
+     FROM empresas e
+     LEFT JOIN LATERAL (
+       SELECT endereco, bairro, referencia, latitude, longitude FROM enderecos
+       WHERE empresa_id = e.id_empresa ORDER BY id_endereco LIMIT 1
+     ) en ON TRUE
+     WHERE e.id_empresa = $1 AND ($2 = FALSE OR e.status = 'aprovada')`,
+    [id, apenasAprovada]
+  );
+  if (!resultado.rows[0]) return null;
+
+  const [categorias, fotos, horarios] = await Promise.all([
+    pool.query(
+      `SELECT c.nome
+       FROM empresa_categoria ec
+       JOIN categorias c ON c.id_categoria = ec.categoria_id
+       WHERE ec.empresa_id = $1
+       ORDER BY c.nome`,
+      [id]
+    ),
+    pool.query('SELECT id_foto, url, ordem FROM fotos_empresa WHERE empresa_id = $1 ORDER BY ordem, id_foto', [id]),
+    pool.query(
+      `SELECT id_horario, empresa_id, dia_semana, abertura, fechamento, fechado,
+              to_char(data_fim, 'YYYY-MM-DD') AS data_fim, status
+       FROM horarios
+       WHERE empresa_id = $1
+       ORDER BY dia_semana, abertura`,
+      [id]
+    ),
+  ]);
+
+  return {
+    ...resultado.rows[0],
+    categorias: categorias.rows.map((categoria) => categoria.nome),
+    fotos: fotos.rows,
+    horarios: horarios.rows,
+    ...calcularFuncionamento(horarios.rows),
+  };
+}
+
 // DETALHE de uma empresa (pública, mas só se estiver aprovada)
 router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const resultado = await pool.query(
-      `SELECT e.id_empresa, e.nome_fantasia, e.tipo, e.descricao, e.telefone, e.site,
-              e.google_maps_url, e.nota_media, e.total_avaliacoes, e.data_cadastro, e.foto_perfil_url,
-              en.endereco, en.bairro, en.referencia, en.latitude, en.longitude
-       FROM empresas e
-       LEFT JOIN enderecos en ON en.empresa_id = e.id_empresa
-       WHERE e.id_empresa = $1 AND e.status = 'aprovada'`,
-      [id]
-    );
-    if (!resultado.rows[0]) {
+    const empresa = await detalheEmpresa(req.params.id);
+    if (!empresa) {
       return res.status(404).json({ erro: 'Empresa não encontrada.' });
     }
+    return res.json(empresa);
+  } catch (erro) {
+    console.error(erro);
+    return res.status(500).json({ erro: 'Erro ao buscar empresa.' });
+  }
+});
 
-    const [categorias, fotos, horarios] = await Promise.all([
-      pool.query(
-        `SELECT c.nome
-         FROM empresa_categoria ec
-         JOIN categorias c ON c.id_categoria = ec.categoria_id
-         WHERE ec.empresa_id = $1
-         ORDER BY c.nome`,
-        [id]
-      ),
-      pool.query('SELECT id_foto, url, ordem FROM fotos_empresa WHERE empresa_id = $1 ORDER BY ordem, id_foto', [id]),
-      pool.query(
-        `SELECT id_horario, empresa_id, dia_semana, abertura, fechamento, fechado,
-                to_char(data_fim, 'YYYY-MM-DD') AS data_fim, status
-         FROM horarios
-         WHERE empresa_id = $1
-         ORDER BY dia_semana, abertura`,
-        [id]
-      ),
-    ]);
-
-    return res.json({
-      ...resultado.rows[0],
-      categorias: categorias.rows.map((categoria) => categoria.nome),
-      fotos: fotos.rows,
-      horarios: horarios.rows,
-      ...calcularFuncionamento(horarios.rows),
-    });
+// Detalhe para o dono ou o admin, em qualquer situação (edição e reenvio)
+router.get('/:id/edicao', verificarToken, verificarDonoEmpresa, async (req, res) => {
+  try {
+    return res.json(await detalheEmpresa(req.empresa.id_empresa, false));
   } catch (erro) {
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao buscar empresa.' });
@@ -660,19 +698,24 @@ router.post('/:id/denunciar', verificarToken, async (req, res) => {
   }
 });
 
+// Aviso por e-mail ao admin; uma falha no envio não desfaz o pedido já gravado
 async function notificarAdminPorEmail(assunto, texto) {
-  const nodemailer = require('nodemailer');
-  const transportador = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_SENHA_APP },
-  });
+  try {
+    const nodemailer = require('nodemailer');
+    const transportador = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_SENHA_APP },
+    });
 
-  await transportador.sendMail({
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_USER,
-    subject: `[DivulgaMap] ${assunto}`,
-    text: texto,
-  });
+    await transportador.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      subject: `[DivulgaMap] ${assunto}`,
+      text: texto,
+    });
+  } catch (erro) {
+    console.error('Aviso ao admin não enviado:', erro.message);
+  }
 }
 
 // PASSO 6: gera e envia o código (por e-mail)
@@ -869,7 +912,10 @@ router.patch('/:id/rejeitar', verificarToken, verificarAdmin, async (req, res) =
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(404).json({ erro: 'Empresa não encontrada.' });
     }
-    const { motivo } = req.body ?? {};
+    const motivo = typeof req.body?.motivo === 'string' ? req.body.motivo.trim() : '';
+    if (!motivo || motivo.length > 500) {
+      return res.status(400).json({ erro: 'Escreva o motivo da rejeição (até 500 letras).' });
+    }
     const atualizada = await pool.query(
       `UPDATE empresas SET status = 'rejeitada', motivo_rejeicao = $1
        WHERE id_empresa = $2 AND status IN ('pendente_aprovacao', 'aprovada') RETURNING *`,
@@ -889,9 +935,11 @@ router.patch('/:id/rejeitar', verificarToken, verificarAdmin, async (req, res) =
 router.get('/solicitacoes/pendentes', verificarToken, verificarAdmin, async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT s.*, e.nome_fantasia
+      `SELECT s.*, e.nome_fantasia, e.status AS status_empresa,
+              u.nome AS solicitante_nome, u.email AS solicitante_email
        FROM solicitacoes_empresa s
        JOIN empresas e ON e.id_empresa = s.empresa_id
+       JOIN usuarios u ON u.id_usuario = s.id_usuario
        WHERE s.status = 'pendente'
        ORDER BY s.criado_em ASC`
     );
@@ -902,33 +950,51 @@ router.get('/solicitacoes/pendentes', verificarToken, verificarAdmin, async (req
   }
 });
 
+// Aprovação: reivindicação troca o dono (e encerra as outras do mesmo cadastro); denúncia rejeita a empresa
 router.patch('/solicitacoes/:id/aprovar', verificarToken, verificarAdmin, async (req, res) => {
+  const cliente = await pool.connect();
   try {
-    const { id } = req.params;
-    const solicitacao = await pool.query('SELECT * FROM solicitacoes_empresa WHERE id_solicitacao = $1', [id]);
+    await cliente.query('BEGIN');
+    const solicitacao = await cliente.query(
+      'SELECT * FROM solicitacoes_empresa WHERE id_solicitacao = $1 FOR UPDATE',
+      [req.params.id]
+    );
     if (!solicitacao.rows[0]) {
+      await cliente.query('ROLLBACK');
       return res.status(404).json({ erro: 'Solicitação não encontrada.' });
     }
-    const { tipo, empresa_id, id_usuario, motivo } = solicitacao.rows[0];
+    const { id_solicitacao, status, tipo, empresa_id, id_usuario, motivo } = solicitacao.rows[0];
+    if (status !== 'pendente') {
+      await cliente.query('ROLLBACK');
+      return res.status(400).json({ erro: 'Esta solicitação já foi analisada.' });
+    }
 
     if (tipo === 'reivindicacao') {
-      // Aprovar reivindicação = transferir o dono do cadastro pra quem pediu
-      await pool.query('UPDATE empresas SET id_usuario = $1 WHERE id_empresa = $2', [id_usuario, empresa_id]);
+      await cliente.query('UPDATE empresas SET id_usuario = $1 WHERE id_empresa = $2', [id_usuario, empresa_id]);
+      await cliente.query(
+        `UPDATE solicitacoes_empresa SET status = 'rejeitada'
+         WHERE empresa_id = $1 AND tipo = 'reivindicacao' AND status = 'pendente' AND id_solicitacao <> $2`,
+        [empresa_id, id_solicitacao]
+      );
     } else if (tipo === 'denuncia') {
-      await pool.query(
+      await cliente.query(
         `UPDATE empresas SET status = 'rejeitada', motivo_rejeicao = $1 WHERE id_empresa = $2`,
         [`Denúncia procedente: ${motivo || 'sem motivo especificado'}`, empresa_id]
       );
     }
 
-    const atualizada = await pool.query(
+    const atualizada = await cliente.query(
       `UPDATE solicitacoes_empresa SET status = 'aprovada' WHERE id_solicitacao = $1 RETURNING *`,
-      [id]
+      [id_solicitacao]
     );
+    await cliente.query('COMMIT');
     return res.json(atualizada.rows[0]);
   } catch (erro) {
+    await cliente.query('ROLLBACK').catch(() => {});
     console.error(erro);
     return res.status(500).json({ erro: 'Erro ao aprovar solicitação.' });
+  } finally {
+    cliente.release();
   }
 });
 
@@ -936,9 +1002,16 @@ router.patch('/solicitacoes/:id/rejeitar', verificarToken, verificarAdmin, async
   try {
     const { id } = req.params;
     const atualizada = await pool.query(
-      `UPDATE solicitacoes_empresa SET status = 'rejeitada' WHERE id_solicitacao = $1 RETURNING *`,
+      `UPDATE solicitacoes_empresa SET status = 'rejeitada'
+       WHERE id_solicitacao = $1 AND status = 'pendente' RETURNING *`,
       [id]
     );
+    if (!atualizada.rows[0]) {
+      const existe = await pool.query('SELECT 1 FROM solicitacoes_empresa WHERE id_solicitacao = $1', [id]);
+      return existe.rows[0]
+        ? res.status(400).json({ erro: 'Esta solicitação já foi analisada.' })
+        : res.status(404).json({ erro: 'Solicitação não encontrada.' });
+    }
     return res.json(atualizada.rows[0]);
   } catch (erro) {
     console.error(erro);
