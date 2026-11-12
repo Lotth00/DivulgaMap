@@ -25,8 +25,17 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState(null);
 
+  const [falhouCategorias, setFalhouCategorias] = useState(false);
+
+  function carregarCategorias() {
+    setFalhouCategorias(false);
+    api.get('/categorias')
+      .then((r) => setTodas(r.data.map((c) => c.nome)))
+      .catch(() => setFalhouCategorias(true));
+  }
+
   useEffect(() => {
-    api.get('/categorias').then((r) => setTodas(r.data.map((c) => c.nome))).catch(() => {});
+    carregarCategorias();
   }, []);
 
   function alternarCategoria(nomeCategoria) {
@@ -92,6 +101,13 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
         <View style={[styles.folha, { paddingBottom: insets.bottom + 20 }]}>
           <Text style={styles.tituloFolha}>Categoria da empresa</Text>
           <Text style={styles.ajudaFolha}>Escolha até {MAXIMO_CATEGORIAS}.</Text>
+          {todas.length === 0 && (
+            <TouchableOpacity onPress={carregarCategorias} disabled={!falhouCategorias} style={styles.semCategorias}>
+              <Text style={styles.textoSemCategorias}>
+                {falhouCategorias ? 'Não foi possível carregar as categorias. Toque para tentar de novo.' : 'Carregando as categorias…'}
+              </Text>
+            </TouchableOpacity>
+          )}
           {todas.map((nomeCategoria) => {
             const marcada = categorias.includes(nomeCategoria);
             return (
@@ -114,6 +130,8 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   espaco: { height: 12 },
+  semCategorias: { paddingVertical: 16 },
+  textoSemCategorias: { ...tipografia.corpoMedio, color: colors.textoSecundario, textAlign: 'center' },
   seletor: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.fundoCaixa,
     borderWidth: 2, borderColor: colors.bordaClara, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12,

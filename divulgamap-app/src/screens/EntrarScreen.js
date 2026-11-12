@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import AvisoConectando from '../components/AvisoConectando';
+import { avisarEmBreve } from '../components/conta/util';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
 
@@ -19,13 +21,24 @@ export default function EntrarScreen({ navigation }) {
   const [carregando, setCarregando] = useState(false);
 
   async function handleLogin() {
+    if (!email.trim() || !senha) {
+      Alert.alert('Confira os dados', 'Preencha o e-mail e a senha.');
+      return;
+    }
     setCarregando(true);
     try {
-      const resposta = await api.post('/auth/login', { email, senha });
+      const resposta = await api.post('/auth/login', { email: email.trim(), senha });
       await entrar(resposta.data.token, resposta.data.usuario);
       navigation.navigate('Principal');
     } catch (erro) {
-      Alert.alert('Erro', 'E-mail ou senha inválidos.');
+      // Sem resposta é falta de conexão; 401 é e-mail ou senha errados
+      if (!erro.response) {
+        Alert.alert('Sem conexão', 'Não foi possível falar com o servidor. Confira a internet e tente de novo.');
+      } else if (erro.response.status === 401) {
+        Alert.alert('Não foi possível entrar', 'E-mail ou senha incorretos.');
+      } else {
+        Alert.alert('Não foi possível entrar', erro.response.data?.erro || 'Tente de novo em instantes.');
+      }
     } finally {
       setCarregando(false);
     }
@@ -71,13 +84,14 @@ export default function EntrarScreen({ navigation }) {
               secureTextEntry
             />
 
-            <TouchableOpacity onPress={() => { /* TODO: fluxo de recuperação de senha, ainda não existe no backend */ }}>
+            <TouchableOpacity onPress={() => avisarEmBreve('Recuperar a senha sem entrar na conta')}>
               <Text style={styles.linkEsqueceu}>Esqueceu a senha?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.botao} onPress={handleLogin} disabled={carregando}>
               <Text style={styles.textoBotao}>{carregando ? 'ENTRANDO...' : 'ENTRAR'}</Text>
             </TouchableOpacity>
+            <AvisoConectando ativo={carregando} />
 
             <View style={styles.divisor}>
               <View style={styles.linha} />
@@ -85,7 +99,7 @@ export default function EntrarScreen({ navigation }) {
               <View style={styles.linha} />
             </View>
 
-            <TouchableOpacity style={styles.botaoGoogle} onPress={() => { /* TODO: login com Google (OAuth), não tem no backend */ }}>
+            <TouchableOpacity style={styles.botaoGoogle} onPress={() => avisarEmBreve('Entrar com Google')}>
               <Text style={styles.textoBotaoGoogle}>ENTRAR COM GOOGLE</Text>
             </TouchableOpacity>
 

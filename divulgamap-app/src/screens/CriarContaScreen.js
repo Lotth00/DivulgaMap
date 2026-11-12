@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
+import AvisoConectando from '../components/AvisoConectando';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
 
@@ -20,17 +21,20 @@ export default function CriarContaScreen({ navigation }) {
 
   async function handleCriarConta() {
     if (senha !== confirmarSenha) {
-      Alert.alert('Erro', 'As senhas não coincidem.');
+      Alert.alert('Confira a senha', 'As duas senhas digitadas não são iguais.');
       return;
     }
     setCarregando(true);
     try {
       await api.post('/auth/cadastro', { nome, email, senha });
-      Alert.alert('Sucesso', 'Conta criada! Agora faça login.');
+      Alert.alert('Conta criada', 'Tudo certo! Agora é só entrar com o seu e-mail e a senha.');
       navigation.navigate('Entrar');
     } catch (erro) {
-      const mensagem = erro.response?.data?.erro || 'Não foi possível criar a conta.';
-      Alert.alert('Erro', mensagem);
+      if (!erro.response) {
+        Alert.alert('Sem conexão', 'Não foi possível falar com o servidor. Confira a internet e tente de novo.');
+      } else {
+        Alert.alert('Não foi possível criar a conta', erro.response.data?.erro || 'Tente de novo em instantes.');
+      }
     } finally {
       setCarregando(false);
     }
@@ -68,6 +72,7 @@ export default function CriarContaScreen({ navigation }) {
             <TouchableOpacity style={styles.botao} onPress={handleCriarConta} disabled={carregando}>
               <Text style={styles.textoBotao}>{carregando ? 'CRIANDO...' : 'CRIAR CONTA'}</Text>
             </TouchableOpacity>
+            <AvisoConectando ativo={carregando} />
 
             <Text style={styles.linkCriar}>
               Você já tem uma conta?{' '}
