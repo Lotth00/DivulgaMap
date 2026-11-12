@@ -29,7 +29,7 @@ export default function GerenciarContaScreen({ navigation }) {
       descricao="Cuide dos seus dados, da segurança e da privacidade da sua conta no DivulgaMap."
       centralizado
     >
-      <TouchableOpacity onPress={() => avisarEmBreve('Seu perfil')} activeOpacity={0.8}>
+      <TouchableOpacity onPress={() => navigation.navigate('SeuPerfil')} activeOpacity={0.8}>
         <CaixaGradiente estiloConteudo={styles.perfil}>
           {dados?.foto_perfil_url ? (
             <Image source={{ uri: dados.foto_perfil_url }} style={styles.foto} />
@@ -49,8 +49,8 @@ export default function GerenciarContaScreen({ navigation }) {
       <View style={styles.grupo}>
         <ItemMenu icone="id-card-outline" texto="Dados pessoais" posicao="primeiro" onPress={() => navigation.navigate('DadosPessoais')} />
         <ItemMenu icone="shield-outline" texto="Senha e segurança" posicao="meio" onPress={() => navigation.navigate('SenhaSeguranca')} />
-        <ItemMenu icone="lock-closed-outline" texto="Privacidade da conta" posicao="meio" onPress={() => avisarEmBreve('Privacidade da conta')} />
-        <ItemMenu icone="notifications-outline" texto="Notificações" posicao="ultimo" onPress={() => avisarEmBreve('Notificações')} />
+        <ItemMenu icone="lock-closed-outline" texto="Privacidade da conta" posicao="meio" onPress={() => navigation.navigate('Privacidade')} />
+        <ItemMenu icone="notifications-outline" texto="Notificações" posicao="ultimo" onPress={() => navigation.navigate('Notificacoes')} />
       </View>
 
       <View style={styles.divisoria} />

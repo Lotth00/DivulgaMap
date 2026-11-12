@@ -33,6 +33,18 @@ import MetricasScreen from '../screens/empresa/MetricasScreen';
 import SeuPerfilScreen from '../screens/conta/SeuPerfilScreen';
 import EditarPerfilScreen from '../screens/conta/EditarPerfilScreen';
 import ImagemPerfilScreen from '../screens/conta/ImagemPerfilScreen';
+import ConfiguracoesScreen from '../screens/conta/ConfiguracoesScreen';
+import TemaScreen from '../screens/conta/TemaScreen';
+import NotificacoesScreen from '../screens/conta/NotificacoesScreen';
+import SobreScreen from '../screens/conta/SobreScreen';
+import SobreSuaContaScreen from '../screens/conta/SobreSuaContaScreen';
+import TextoLegalScreen from '../screens/conta/TextoLegalScreen';
+import PrivacidadeScreen from '../screens/conta/PrivacidadeScreen';
+import SeusDadosScreen from '../screens/conta/SeusDadosScreen';
+import HistoricoScreen from '../screens/conta/HistoricoScreen';
+import AjudaFeedbackScreen from '../screens/conta/AjudaFeedbackScreen';
+import AjudaScreen from '../screens/conta/AjudaScreen';
+import FeedbackScreen from '../screens/conta/FeedbackScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
 
 const Stack = createStackNavigator();
@@ -80,6 +92,18 @@ export default function Navigation() {
         <Stack.Screen name="SeuPerfil" component={SeuPerfilScreen} />
         <Stack.Screen name="EditarPerfil" component={EditarPerfilScreen} />
         <Stack.Screen name="ImagemPerfil" component={ImagemPerfilScreen} />
+        <Stack.Screen name="Configuracoes" component={ConfiguracoesScreen} />
+        <Stack.Screen name="Tema" component={TemaScreen} />
+        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
+        <Stack.Screen name="Sobre" component={SobreScreen} />
+        <Stack.Screen name="SobreSuaConta" component={SobreSuaContaScreen} />
+        <Stack.Screen name="TextoLegal" component={TextoLegalScreen} />
+        <Stack.Screen name="Privacidade" component={PrivacidadeScreen} />
+        <Stack.Screen name="SeusDados" component={SeusDadosScreen} />
+        <Stack.Screen name="Historico" component={HistoricoScreen} />
+        <Stack.Screen name="AjudaFeedback" component={AjudaFeedbackScreen} />
+        <Stack.Screen name="Ajuda" component={AjudaScreen} />
+        <Stack.Screen name="Feedback" component={FeedbackScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

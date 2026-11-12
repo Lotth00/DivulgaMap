@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import CartaoAcessoNecessario from '../components/CartaoAcessoNecessario';
 import ItemMenu from '../components/ItemMenu';
-import { useDadosUsuario, avisarEmBreve } from '../components/conta/util';
+import { useDadosUsuario } from '../components/conta/util';
 import MenuPopup from '../components/MenuPopup';
 import { useMinhasEmpresas, abrirMinhaEmpresa, adicionarEmpresa, STATUS_EMPRESA } from './empresa/util';
 import colors from '../theme/colors';
@@ -43,7 +43,7 @@ export default function ContaScreen({ navigation }) {
           mensagem={'Para acessar seu perfil faça\nlogin ou crie uma conta'}
           navigation={navigation}
         />
-        <TouchableOpacity onPress={() => avisarEmBreve('A Política de Privacidade')} style={styles.rodape}>
+        <TouchableOpacity onPress={() => navigation.navigate('TextoLegal', { tipo: 'privacidade' })} style={styles.rodape}>
           <Text style={styles.textoRodape}>Política de Privacidade</Text>
         </TouchableOpacity>
       </View>
@@ -100,12 +100,12 @@ export default function ContaScreen({ navigation }) {
         )}
 
         <View style={styles.grupo}>
-          <ItemMenu icone={require('../../assets/images/icones/dados.png')} texto="Seus dados no DivulgaMap" posicao="primeiro" onPress={() => avisarEmBreve('Seus dados no DivulgaMap')} />
-          <ItemMenu icone={require('../../assets/images/icones/configuracoes.png')} texto="Configurações" posicao="meio" onPress={() => avisarEmBreve('Configurações')} />
-          <ItemMenu icone={require('../../assets/images/icones/ajuda.png')} texto="Ajuda e feedback" posicao="ultimo" onPress={() => avisarEmBreve('Ajuda e feedback')} />
+          <ItemMenu icone={require('../../assets/images/icones/dados.png')} texto="Seus dados no DivulgaMap" posicao="primeiro" onPress={() => navigation.navigate('SeusDados')} />
+          <ItemMenu icone={require('../../assets/images/icones/configuracoes.png')} texto="Configurações" posicao="meio" onPress={() => navigation.navigate('Configuracoes')} />
+          <ItemMenu icone={require('../../assets/images/icones/ajuda.png')} texto="Ajuda e feedback" posicao="ultimo" onPress={() => navigation.navigate('AjudaFeedback')} />
         </View>
 
-        <TouchableOpacity onPress={() => avisarEmBreve('A Política de Privacidade')} style={styles.rodape}>
+        <TouchableOpacity onPress={() => navigation.navigate('TextoLegal', { tipo: 'privacidade' })} style={styles.rodape}>
           <Text style={styles.textoRodape}>Política de Privacidade</Text>
         </TouchableOpacity>
       </ScrollView>

@@ -7,7 +7,6 @@ import { useWizard, mensagemDeErro } from '../../context/WizardContext';
 import TelaWizard from '../../components/wizard/TelaWizard';
 import CampoWizard from '../../components/wizard/CampoWizard';
 import BotaoGradiente from '../../components/BotaoGradiente';
-import { avisarEmBreve } from '../../components/conta/util';
 import colors from '../../theme/colors';
 import tipografia from '../../theme/tipografia';
 
@@ -82,9 +81,9 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
         </View>
         <Text style={styles.textoTermos}>
           Ao continuar, você concorda com o{' '}
-          <Text style={styles.link} onPress={() => avisarEmBreve('O Termo de Uso')}>Termo de Uso</Text>
+          <Text style={styles.link} onPress={() => navigation.navigate('TextoLegal', { tipo: 'termos' })}>Termo de Uso</Text>
           {' '}e{' '}
-          <Text style={styles.link} onPress={() => avisarEmBreve('A Política de Privacidade')}>Política de Privacidade</Text>
+          <Text style={styles.link} onPress={() => navigation.navigate('TextoLegal', { tipo: 'privacidade' })}>Política de Privacidade</Text>
         </Text>
       </TouchableOpacity>
 

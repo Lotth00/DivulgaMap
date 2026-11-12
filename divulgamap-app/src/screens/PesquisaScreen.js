@@ -62,11 +62,11 @@ function Chip({ rotulo, ativo, onPress }) {
   );
 }
 
-export default function PesquisaScreen({ navigation }) {
+export default function PesquisaScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { logado } = useAuth();
 
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState(route.params?.termo ?? '');
   const [menuRecente, setMenuRecente] = useState(null);
   const [resultados, setResultados] = useState(SEM_RESULTADOS);
   const [buscando, setBuscando] = useState(false);
