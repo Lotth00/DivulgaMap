@@ -87,7 +87,8 @@ export function mensagemDeErro(erro, padrao = 'Confira sua conexão e tente de n
 }
 
 // Escolhe uma foto da galeria e envia para o Cloudinary; devolve a URL ou null se cancelar
-export async function escolherEEnviarFoto(pasta, quadrada = false) {
+// aspecto: recorte em outra proporção, ex.: [8, 3]
+export async function escolherEEnviarFoto(pasta, quadrada = false, aspecto = null) {
   const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permissao.granted) {
     Alert.alert('Permissão necessária', 'Permita o acesso às fotos para escolher uma imagem.');
@@ -95,11 +96,35 @@ export async function escolherEEnviarFoto(pasta, quadrada = false) {
   }
   const resultado = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-    allowsEditing: quadrada,
-    aspect: quadrada ? [1, 1] : undefined,
+    allowsEditing: quadrada || !!aspecto,
+    aspect: aspecto ?? (quadrada ? [1, 1] : undefined),
     quality: 0.7,
   });
   if (resultado.canceled) return null;
   const foto = resultado.assets[0];
   return enviarImagem(foto.uri, pasta, foto.mimeType ?? null);
+}
+
+// Situação do anúncio para o dono
+export const SITUACAO_ANUNCIO = {
+  no_ar: { rotulo: 'No ar', cor: '#1E9B1E' },
+  agendado: { rotulo: 'Agendado', cor: '#6B6B6B' },
+  encerrado: { rotulo: 'Encerrado', cor: '#6B6B6B' },
+  aguardando_pagamento: { rotulo: 'Aguardando pagamento', cor: '#B07A00' },
+  cancelado: { rotulo: 'Cancelado', cor: '#D32F2F' },
+};
+
+// Proporção da imagem de cada formato de anúncio (largura, altura)
+export const PROPORCAO_ANUNCIO = { banner: [8, 3], faixa: [5, 1] };
+
+// 12.5 → "R$ 12,50"
+export function reais(valor) {
+  return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+}
+
+// Data ISO → "DD/MM"
+export function diaMes(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 }

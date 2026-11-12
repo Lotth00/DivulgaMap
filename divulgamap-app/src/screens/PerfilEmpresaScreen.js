@@ -367,6 +367,7 @@ export default function PerfilEmpresaScreen({ route, navigation }) {
         visivel={menu === 'principal'}
         opcoes={dono ? [
           { texto: 'Editar perfil', onPress: () => navigation.navigate('EditarEmpresa', { id: empresa.id_empresa }) },
+          { texto: 'Anúncios', onPress: () => navigation.navigate('MeusAnuncios', { empresaId: empresa.id_empresa, empresaNome: empresa.nome_fantasia }) },
           { texto: 'Compartilhar', onPress: compartilhar },
           { texto: 'Adicionar outra empresa', onPress: () => adicionarEmpresa(navigation) },
         ] : [
