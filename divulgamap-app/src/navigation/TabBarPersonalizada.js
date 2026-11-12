@@ -43,8 +43,8 @@ export default function TabBarPersonalizada({ state, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', paddingTop: 14, paddingBottom: 14, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  aba: { flex: 1, alignItems: 'center', paddingVertical: 8, marginHorizontal: 8, borderRadius: 16 },
+  container: { flexDirection: 'row', paddingTop: 14, paddingBottom: 14, paddingHorizontal: '10%', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  aba: { flex: 1, alignItems: 'center', paddingVertical: 8, marginHorizontal: 6, borderRadius: 16 },
   abaAtiva: { backgroundColor: '#A4E344' },
   iconePin: { width: 20, height: 22, marginBottom: 2 },
   rotulo: { fontFamily: 'Poppins_500Medium', includeFontPadding: false, fontSize: fs(12), marginTop: 4, color: colors.pretoTexto },

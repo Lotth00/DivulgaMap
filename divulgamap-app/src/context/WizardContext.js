@@ -8,9 +8,9 @@ export function WizardProvider({ rascunhoInicial = null, children }) {
   const [empresa, setEmpresa] = useState(rascunhoInicial);
 
   // Passo 1: cria o rascunho (ou atualiza nome e categorias, se já existe)
-  async function salvarPerfil(nome_fantasia, categorias) {
-    if (empresa?.id_empresa) return salvar({ nome_fantasia, categorias });
-    const resposta = await api.post('/empresas/rascunho', { nome_fantasia, categorias });
+  async function salvarPerfil(nome_fantasia, categorias, ramo = '') {
+    if (empresa?.id_empresa) return salvar({ nome_fantasia, categorias, ramo });
+    const resposta = await api.post('/empresas/rascunho', { nome_fantasia, categorias, ramo });
     setEmpresa(resposta.data);
     return resposta.data;
   }

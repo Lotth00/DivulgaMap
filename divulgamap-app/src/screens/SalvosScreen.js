@@ -10,7 +10,7 @@ import CartaoAcessoNecessario from '../components/CartaoAcessoNecessario';
 import TelaMapaBase from '../components/TelaMapaBase';
 import Carregando from '../components/Carregando';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
-import MenuOpcoes from '../components/MenuOpcoes';
+import MenuPopup, { ancoraDoToque } from '../components/MenuPopup';
 import ModalNomeLista from '../components/ModalNomeLista';
 import { NOME_FAVORITOS, ordenarListas, textoTotal, renomearLista, confirmarExclusaoLista } from '../components/listasSalvas';
 import colors from '../theme/colors';
@@ -119,7 +119,7 @@ export default function SalvosScreen({ navigation }) {
                   <Text style={styles.nome} numberOfLines={1}>{lista.nome}</Text>
                   <Text style={styles.total}>{textoTotal(lista.total_itens)}</Text>
                 </View>
-                <TouchableOpacity onPress={() => setMenuDaLista(lista)} style={styles.botaoMenu} accessibilityLabel={`Opções de ${lista.nome}`}>
+                <TouchableOpacity onPress={(e) => setMenuDaLista({ lista, ancora: ancoraDoToque(e) })} style={styles.botaoMenu} accessibilityLabel={`Opções de ${lista.nome}`}>
                   <Ionicons name="ellipsis-vertical" size={20} color={colors.iconeMenu} />
                 </TouchableOpacity>
               </TouchableOpacity>
@@ -138,11 +138,11 @@ export default function SalvosScreen({ navigation }) {
         {conteudo()}
       </TelaMapaBase>
 
-      <MenuOpcoes
+      <MenuPopup
         visivel={!!menuDaLista}
-        titulo={menuDaLista?.nome}
-        aviso={menuDaLista?.nome === NOME_FAVORITOS ? 'A lista Favoritos é fixa: não pode ser renomeada nem excluída.' : null}
-        opcoes={opcoesDaLista(menuDaLista)}
+        ancora={menuDaLista?.ancora}
+        aviso={menuDaLista?.lista.nome === NOME_FAVORITOS ? 'A lista Favoritos é fixa: não pode ser renomeada nem excluída.' : null}
+        opcoes={opcoesDaLista(menuDaLista?.lista)}
         onFechar={() => setMenuDaLista(null)}
       />
       <ModalNomeLista

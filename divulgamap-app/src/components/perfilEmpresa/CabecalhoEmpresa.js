@@ -17,8 +17,8 @@ export default function CabecalhoEmpresa({ empresa }) {
         <ImagemItem uri={empresa.foto_perfil_url} categoria={categoriaPrincipal} largura={84} raio={42} />
         <View style={styles.textos}>
           <Text style={styles.nome} numberOfLines={2}>{empresa.nome_fantasia}</Text>
-          {empresa.categorias?.length > 0 && (
-            <Text style={styles.categoria} numberOfLines={1}>{empresa.categorias.join(', ')}</Text>
+          {(empresa.ramo || empresa.categorias?.length > 0) && (
+            <Text style={styles.categoria} numberOfLines={1}>{empresa.ramo || empresa.categorias.join(', ')}</Text>
           )}
           {Number(empresa.total_avaliacoes) > 0 ? (
             <View style={styles.linhaNota}>

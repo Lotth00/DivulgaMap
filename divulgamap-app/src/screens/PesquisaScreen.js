@@ -13,6 +13,7 @@ import BotaoGradiente from '../components/BotaoGradiente';
 import Carregando from '../components/Carregando';
 import EstadoVazio from '../components/EstadoVazio';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
+import MenuPopup, { ancoraDoToque } from '../components/MenuPopup';
 import colors from '../theme/colors';
 import tipografia, { fs } from '../theme/tipografia';
 
@@ -66,6 +67,7 @@ export default function PesquisaScreen({ navigation }) {
   const { logado } = useAuth();
 
   const [busca, setBusca] = useState('');
+  const [menuRecente, setMenuRecente] = useState(null);
   const [resultados, setResultados] = useState(SEM_RESULTADOS);
   const [buscando, setBuscando] = useState(false);
   const [falhouBusca, setFalhouBusca] = useState(false);
@@ -174,24 +176,15 @@ export default function PesquisaScreen({ navigation }) {
     abrirItem(item.tipo_item, item.item_id, item.empresa_id);
   }
 
-  function removerRecente(item) {
-    Alert.alert(item.nome ?? item.termo, undefined, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Remover do histórico',
-        style: 'destructive',
-        onPress: async () => {
-          const anteriores = recentes;
-          setRecentes((lista) => lista.filter((r) => r.id_historico !== item.id_historico));
-          try {
-            await api.delete(`/historico/${item.id_historico}`);
-          } catch (erro) {
-            setRecentes(anteriores);
-            Alert.alert('Não foi possível remover', 'Confira sua conexão e tente de novo.');
-          }
-        },
-      },
-    ]);
+  async function removerRecente(item) {
+    const anteriores = recentes;
+    setRecentes((lista) => lista.filter((r) => r.id_historico !== item.id_historico));
+    try {
+      await api.delete(`/historico/${item.id_historico}`);
+    } catch (erro) {
+      setRecentes(anteriores);
+      Alert.alert('Não foi possível remover', 'Confira sua conexão e tente de novo.');
+    }
   }
 
   // Lista "Favoritos" (ou a primeira lista da pessoa)
@@ -345,7 +338,7 @@ export default function PesquisaScreen({ navigation }) {
                 <Ionicons name={item.salvo ? 'star' : 'star-outline'} size={24} color={COR_ESTRELA} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={() => removerRecente(item)} style={styles.botaoIcone} accessibilityLabel="Mais opções">
+            <TouchableOpacity onPress={(e) => setMenuRecente({ item, ancora: ancoraDoToque(e) })} style={styles.botaoIcone} accessibilityLabel="Mais opções">
               <Ionicons name="ellipsis-vertical" size={22} color={colors.pretoTexto} />
             </TouchableOpacity>
           </TouchableOpacity>
@@ -418,6 +411,13 @@ export default function PesquisaScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      <MenuPopup
+        visivel={!!menuRecente}
+        ancora={menuRecente?.ancora}
+        opcoes={menuRecente ? [{ texto: 'Remover do histórico', perigo: true, onPress: () => removerRecente(menuRecente.item) }] : []}
+        onFechar={() => setMenuRecente(null)}
+      />
     </View>
   );
 }

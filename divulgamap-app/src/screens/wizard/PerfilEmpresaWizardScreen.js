@@ -18,6 +18,7 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { empresa, salvarPerfil } = useWizard();
   const [nome, setNome] = useState(empresa?.nome_fantasia ?? '');
+  const [ramo, setRamo] = useState(empresa?.ramo ?? '');
   const [categorias, setCategorias] = useState(empresa?.categorias ?? []);
   const [todas, setTodas] = useState([]);
   const [escolhendo, setEscolhendo] = useState(false);
@@ -41,7 +42,7 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
     setErro(null);
     setEnviando(true);
     try {
-      await salvarPerfil(nome.trim(), categorias);
+      await salvarPerfil(nome.trim(), categorias, ramo.trim());
       navigation.navigate('WizardTipo');
     } catch (e) {
       setErro(mensagemDeErro(e));
@@ -62,6 +63,10 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
       onAvancar={avancar}
     >
       <CampoWizard placeholder="Nome da empresa" value={nome} onChangeText={setNome} maxLength={150} />
+      <View style={styles.espaco} />
+      <CampoWizard placeholder="O que é? Lanchonete? Salão de beleza?" value={ramo} onChangeText={setRamo} maxLength={60} />
+      <Text style={styles.ajuda}>Aparece embaixo do nome da empresa</Text>
+      <View style={styles.espaco} />
 
       <TouchableOpacity onPress={() => setEscolhendo(true)} activeOpacity={0.7} style={styles.seletor}>
         <Text style={[styles.textoSeletor, !categorias.length && styles.placeholder]} numberOfLines={1}>
@@ -109,6 +114,7 @@ export default function PerfilEmpresaWizardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  espaco: { height: 12 },
   seletor: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.fundoCaixa,
     borderWidth: 2, borderColor: colors.bordaClara, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12,

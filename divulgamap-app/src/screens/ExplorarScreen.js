@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import TelaMapaBase from '../components/TelaMapaBase';
 import CarrosselBanners from '../components/CarrosselBanners';
 import TituloSecao from '../components/TituloSecao';
@@ -25,6 +26,43 @@ const ABAS = [
   { valor: 'relampago', rotulo: 'Relâmpago' },
 ];
 const QUANTIDADE_NOVAS_EMPRESAS = 6;
+const MAXIMO_SEGUIDOS_DA_EMPRESA = 2;
+const PESO_CATEGORIA = 1.5;
+const PESO_EMPRESA = 1;
+
+// Ordem pelo interesse da pessoa (categoria e empresa), mantendo a ordem original como base
+function ordenarPorInteresse(itens, interesses) {
+  if (!interesses || itens.length < 2) return itens;
+  const total = itens.length;
+  return itens
+    .map((item, indice) => ({
+      item,
+      nota: (1 - indice / total)
+        + PESO_CATEGORIA * (interesses.categorias?.[item.categoria] ?? 0)
+        + PESO_EMPRESA * (interesses.empresas?.[item.empresa_id] ?? 0),
+    }))
+    .sort((a, b) => b.nota - a.nota)
+    .map(({ item }) => item);
+}
+
+// Variedade: no máximo 2 itens da mesma empresa na frente; os que sobram vão para o fim
+function variarEmpresas(itens) {
+  const frente = [];
+  const resto = [];
+  const contagem = {};
+  for (const item of itens) {
+    const vezes = contagem[item.empresa_id] ?? 0;
+    if (vezes < MAXIMO_SEGUIDOS_DA_EMPRESA) {
+      frente.push(item);
+      contagem[item.empresa_id] = vezes + 1;
+    } else {
+      resto.push(item);
+    }
+  }
+  return [...frente, ...resto];
+}
+
+const organizar = (itens, interesses) => variarEmpresas(ordenarPorInteresse(itens, interesses));
 
 // Linha com rolagem horizontal (a do gesture-handler, para não brigar com o arrastar do menu)
 function Carrossel({ children }) {
@@ -36,6 +74,8 @@ function Carrossel({ children }) {
 }
 
 export default function ExplorarScreen({ navigation }) {
+  const { logado } = useAuth();
+  const [interesses, setInteresses] = useState(null);
   const [empresas, setEmpresas] = useState([]);
   const [ofertas, setOfertas] = useState([]);
   const [servicos, setServicos] = useState([]);
@@ -60,6 +100,15 @@ export default function ExplorarScreen({ navigation }) {
     anunciosVistos.current = new Set();
     buscarAnuncios();
   }, []));
+
+  // Interesses da pessoa logada, de novo a cada abertura da tela
+  useFocusEffect(useCallback(() => {
+    if (!logado) {
+      setInteresses(null);
+      return;
+    }
+    api.get('/historico/interesses').then((r) => setInteresses(r.data)).catch(() => {});
+  }, [logado]));
 
   async function buscarAnuncios() {
     try {
@@ -185,11 +234,13 @@ export default function ExplorarScreen({ navigation }) {
   const secoes = useMemo(() => {
     const visiveis = categoriaSelecionada ? ofertas.filter((o) => o.categoria === categoriaSelecionada) : ofertas;
     return {
-      produtos: visiveis.filter((o) => o.tipo === 'normal' && o.tipo_item !== 'servico'),
-      especial: visiveis.filter((o) => o.tipo === 'especial'),
-      relampago: visiveis.filter((o) => o.tipo === 'relampago'),
+      produtos: organizar(visiveis.filter((o) => o.tipo === 'normal' && o.tipo_item !== 'servico'), interesses),
+      especial: organizar(visiveis.filter((o) => o.tipo === 'especial'), interesses),
+      relampago: organizar(visiveis.filter((o) => o.tipo === 'relampago'), interesses),
     };
-  }, [ofertas, categoriaSelecionada]);
+  }, [ofertas, categoriaSelecionada, interesses]);
+
+  const servicosOrganizados = useMemo(() => organizar(servicos, interesses), [servicos, interesses]);
 
   const novasEmpresas = useMemo(
     () => [...empresas].sort((a, b) => b.id_empresa - a.id_empresa).slice(0, QUANTIDADE_NOVAS_EMPRESAS),
@@ -233,13 +284,13 @@ export default function ExplorarScreen({ navigation }) {
         </View>
       );
     }
-    if (servicos.length) {
-      const abrir = verMais('Serviços próximos de você', 'servico', servicos);
+    if (servicosOrganizados.length) {
+      const abrir = verMais('Serviços próximos de você', 'servico', servicosOrganizados);
       blocos.push(
         <View key="servicos" style={styles.secao}>
           <TituloSecao titulo="Serviços próximos de você" onVerMais={abrir} />
           <Carrossel>
-            {servicos.map((servico) => (
+            {servicosOrganizados.map((servico) => (
               <CartaoServico key={servico.id_produto} servico={servico} onPress={() => abrirServico(servico)} />
             ))}
           </Carrossel>

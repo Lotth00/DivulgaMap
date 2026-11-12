@@ -12,9 +12,13 @@ export default function CartaoAvaliacao({ avaliacao, largura, minha = false }) {
   return (
     <View style={[styles.cartao, largura && { width: largura }]}>
       <View style={styles.pessoa}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={18} color={colors.textoSecundario} />
-        </View>
+        {avaliacao.usuario_foto ? (
+          <Image source={{ uri: avaliacao.usuario_foto }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={18} color={colors.textoSecundario} />
+          </View>
+        )}
         <Text style={styles.nome} numberOfLines={1}>{minha ? 'Você' : avaliacao.usuario_nome}</Text>
       </View>
       <View style={styles.linhaNota}>

@@ -69,7 +69,7 @@ function CartaoEmpresaPendente({ empresa, ocupado, onAprovar, onRejeitar }) {
         <View style={styles.topoTexto}>
           <Text style={styles.nome} numberOfLines={2}>{empresa.nome_fantasia}</Text>
           <Text style={styles.detalhe} numberOfLines={2}>
-            {[TIPOS_EMPRESA[empresa.tipo], ...(empresa.categorias ?? [])].filter(Boolean).join(' · ')}
+            {[empresa.ramo, TIPOS_EMPRESA[empresa.tipo], ...(empresa.categorias ?? [])].filter(Boolean).join(' · ')}
           </Text>
         </View>
       </View>

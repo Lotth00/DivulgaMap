@@ -58,6 +58,7 @@ export default function EditarEmpresaScreen({ route, navigation }) {
   const [original, setOriginal] = useState(null);
   const [logo, setLogo] = useState(null);
   const [nome, setNome] = useState('');
+  const [ramo, setRamo] = useState('');
   const [tipo, setTipo] = useState('comercio');
   const [categorias, setCategorias] = useState([]);
   const [descricao, setDescricao] = useState('');
@@ -79,6 +80,7 @@ export default function EditarEmpresaScreen({ route, navigation }) {
       setOriginal(e);
       setLogo(e.foto_perfil_url ?? null);
       setNome(e.nome_fantasia ?? '');
+      setRamo(e.ramo ?? '');
       setTipo(e.tipo ?? 'comercio');
       setCategorias(e.categorias ?? []);
       setDescricao(e.descricao ?? '');
@@ -171,6 +173,7 @@ export default function EditarEmpresaScreen({ route, navigation }) {
       if ((valor ?? '') !== (atual ?? '')) dados[campo] = valor;
     };
     conferir('nome_fantasia', nome.trim(), original.nome_fantasia);
+    conferir('ramo', ramo.trim(), original.ramo);
     conferir('tipo', tipo, original.tipo);
     conferir('descricao', descricao.trim(), original.descricao);
     conferir('telefone', telefone.trim(), original.telefone);
@@ -243,6 +246,9 @@ export default function EditarEmpresaScreen({ route, navigation }) {
 
       <Rotulo texto="Nome" />
       <CampoTexto valor={nome} onMudar={setNome} limite={150} />
+
+      <Rotulo texto="O que é" />
+      <CampoTexto valor={ramo} onMudar={setRamo} limite={60} placeholder="O que é? Lanchonete? Salão de beleza?" />
 
       <Rotulo texto="Tipo" />
       <View style={styles.chips}>

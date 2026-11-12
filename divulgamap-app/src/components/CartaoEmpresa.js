@@ -24,7 +24,7 @@ export default function CartaoEmpresa({ empresa, onPress, largura = 300 }) {
       <View style={styles.textos}>
         <Text style={styles.nome} numberOfLines={1}>{empresa.nome_fantasia}</Text>
         <Text style={styles.descricao} numberOfLines={3}>
-          {empresa.descricao || [empresa.categorias, empresa.bairro].filter(Boolean).join(' · ')}
+          {empresa.descricao || [empresa.ramo || empresa.categorias, empresa.bairro].filter(Boolean).join(' · ')}
         </Text>
         <Text style={styles.saibaMais}>Saiba mais</Text>
       </View>

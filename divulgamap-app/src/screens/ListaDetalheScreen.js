@@ -9,7 +9,7 @@ import ImagemItem from '../components/ImagemItem';
 import Carregando from '../components/Carregando';
 import EstadoVazio from '../components/EstadoVazio';
 import ErroComTentarDeNovo from '../components/ErroComTentarDeNovo';
-import MenuOpcoes from '../components/MenuOpcoes';
+import MenuPopup, { ancoraDoToque } from '../components/MenuPopup';
 import ModalNomeLista from '../components/ModalNomeLista';
 import { NOME_FAVORITOS, textoTotal, renomearLista, confirmarExclusaoLista } from '../components/listasSalvas';
 import colors from '../theme/colors';
@@ -93,7 +93,7 @@ export default function ListaDetalheScreen({ route, navigation }) {
           <Text style={styles.apoio} numberOfLines={1}>{subtitulo(item)}</Text>
           {item.encerrada ? <Text style={styles.encerrada}>Encerrada</Text> : null}
         </View>
-        <TouchableOpacity onPress={() => setMenuDoItem(item)} style={styles.botaoMenu} accessibilityLabel={`Opções de ${item.nome}`}>
+        <TouchableOpacity onPress={(e) => setMenuDoItem({ item, ancora: ancoraDoToque(e) })} style={styles.botaoMenu} accessibilityLabel={`Opções de ${item.nome}`}>
           <Ionicons name="ellipsis-vertical" size={20} color={colors.iconeMenu} />
         </TouchableOpacity>
       </TouchableOpacity>
@@ -133,13 +133,16 @@ export default function ListaDetalheScreen({ route, navigation }) {
       <Cabecalho onVoltar={() => navigation.goBack()} onMenu={() => setMenuDaLista(true)} />
       {corpo}
 
-      <MenuOpcoes
+      <MenuPopup
         visivel={!!menuDoItem}
-        titulo={menuDoItem?.nome}
-        opcoes={menuDoItem ? [{ icone: 'trash-outline', texto: 'Remover da lista', perigo: true, onPress: () => remover(menuDoItem) }] : []}
+        ancora={menuDoItem?.ancora}
+        opcoes={menuDoItem ? [
+          { texto: 'Abrir', onPress: () => abrir(menuDoItem.item) },
+          { texto: 'Remover da lista', perigo: true, onPress: () => remover(menuDoItem.item) },
+        ] : []}
         onFechar={() => setMenuDoItem(null)}
       />
-      <MenuOpcoes
+      <MenuPopup
         visivel={menuDaLista}
         titulo={lista?.nome}
         aviso={fixa ? 'A lista Favoritos é fixa: não pode ser renomeada nem excluída.' : null}
