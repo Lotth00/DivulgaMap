@@ -1272,3 +1272,9 @@ CREATE TABLE IF NOT EXISTS public.eventos_anuncio (
 );
 
 CREATE INDEX IF NOT EXISTS eventos_anuncio_idx ON public.eventos_anuncio (anuncio_id, tipo, criado_em);
+
+--
+-- Ramo da empresa em texto livre ("Lanchonete", "Salão de beleza"), mais específico que a categoria
+--
+
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS ramo character varying(60);
