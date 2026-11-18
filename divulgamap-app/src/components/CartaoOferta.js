@@ -34,7 +34,7 @@ export default function CartaoOferta({ oferta, onPress, largura = 165 }) {
         largura={largura - 16}
         altura={120}
         raio={6}
-        ajuste="contain"
+        ajuste="cover"
         estilo={styles.imagem}
       />
       <Text style={styles.empresa} numberOfLines={1}>{oferta.empresa_nome}</Text>
