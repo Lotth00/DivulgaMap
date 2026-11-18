@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, ScrollView, Image, RefreshControl, StyleS
 import { useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -274,7 +273,6 @@ export default function TelaMapaBase({
           <LinearGradient colors={[colors.menuInicio, colors.menuFim]} style={styles.barraBusca} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Image source={require('../../assets/images/logo-pin.png')} style={styles.iconeLogo} resizeMode="contain" />
             <Text style={styles.inputBusca}>O que você procura?</Text>
-            <Ionicons name="mic-outline" size={20} color={colors.pretoTexto} />
           </LinearGradient>
         </TouchableOpacity>
 

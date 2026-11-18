@@ -372,9 +372,7 @@ export default function PesquisaScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => setBusca('')} accessibilityLabel="Limpar busca">
             <Ionicons name="close" size={22} color={colors.textoSecundario} />
           </TouchableOpacity>
-        ) : (
-          <Ionicons name="mic-outline" size={22} color={colors.pretoTexto} />
-        )}
+        ) : null}
       </View>
 
       <View style={styles.faixaFiltro}>
