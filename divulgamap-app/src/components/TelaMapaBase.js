@@ -38,6 +38,17 @@ const HTML_MAPA = `
   <style>
     html, body, #mapa { height: 100%; margin: 0; padding: 0; background: #E8E8E8; }
     .leaflet-control-attribution { font-size: 9px; }
+    .marcador { background: none; border: none; }
+    .rotulo {
+      display: none; position: absolute; left: 30px; top: 3px; max-width: 150px;
+      padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,0.92);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25); font-family: sans-serif; color: #1A1A1A;
+    }
+    .rotulo b, .rotulo span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rotulo b { font-size: 12px; font-weight: 600; }
+    .rotulo span { font-size: 10px; color: #555555; }
+    .mostrar-rotulos .rotulo { display: block; }
+    .mostrar-rotulos .rotulo.escondido { visibility: hidden; }
   </style>
 </head>
 <body>
@@ -66,6 +77,58 @@ const HTML_MAPA = `
     var marcadoresAtuais = [];
     var marcadorUsuario = null;
 
+    // Zoom a partir do qual nome e ramo aparecem ao lado do pino
+    var ZOOM_ROTULOS = 16;
+
+    var SVG_PINO =
+      '<svg width="30" height="40" viewBox="-1 -1 30 40" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M14 0C6.3 0 0 6.2 0 13.9 0 24.3 14 38 14 38s14-13.7 14-24.1C28 6.2 21.7 0 14 0z" ' +
+      'fill="#E53935" stroke="#FFFFFF" stroke-width="1.5"/>' +
+      '<circle cx="14" cy="14" r="5" fill="#FFFFFF"/></svg>';
+
+    function escapar(texto) {
+      var trocas = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(texto || '').replace(/[&<>"']/g, function (c) { return trocas[c]; });
+    }
+
+    // Pino vermelho com rótulo (nome e ramo), a ponta no local da empresa
+    function iconeDoPonto(ponto) {
+      var rotulo = ponto.nome
+        ? '<div class="rotulo"><b>' + escapar(ponto.nome) + '</b>' +
+          (ponto.descricao ? '<span>' + escapar(ponto.descricao) + '</span>' : '') + '</div>'
+        : '';
+      return L.divIcon({
+        className: 'marcador',
+        html: SVG_PINO + rotulo,
+        iconSize: [30, 40],
+        iconAnchor: [15, 39],
+      });
+    }
+
+    function sobrepoe(a, b) {
+      return a.left < b.right + 2 && a.right > b.left - 2 && a.top < b.bottom + 2 && a.bottom > b.top - 2;
+    }
+
+    // Rótulos só com zoom aproximado; o que bateria em outro já visível fica escondido
+    function arrumarRotulos() {
+      var mostrar = mapa.getZoom() >= ZOOM_ROTULOS;
+      document.body.classList.toggle('mostrar-rotulos', mostrar);
+      if (!mostrar) return;
+      var ocupados = [];
+      marcadoresAtuais.forEach(function (m) {
+        var el = m.getElement();
+        var rotulo = el && el.querySelector('.rotulo');
+        if (!rotulo) return;
+        rotulo.classList.remove('escondido');
+        var caixa = rotulo.getBoundingClientRect();
+        var bate = ocupados.some(function (outra) { return sobrepoe(caixa, outra); });
+        if (bate) rotulo.classList.add('escondido');
+        else ocupados.push(caixa);
+      });
+    }
+
+    mapa.on('zoomend moveend', arrumarRotulos);
+
     function enviar(mensagem) {
       window.ReactNativeWebView.postMessage(JSON.stringify(mensagem));
     }
@@ -82,10 +145,11 @@ const HTML_MAPA = `
         if (dados.tipo === 'PONTOS') {
           limparMarcadores();
           dados.pontos.forEach(function (ponto) {
-            var marcador = L.marker([ponto.latitude, ponto.longitude]).addTo(mapa);
+            var marcador = L.marker([ponto.latitude, ponto.longitude], { icon: iconeDoPonto(ponto) }).addTo(mapa);
             marcador.on('click', function () { enviar({ tipo: 'TOQUE_PONTO', id: ponto.id }); });
             marcadoresAtuais.push(marcador);
           });
+          arrumarRotulos();
         }
 
         if (dados.tipo === 'LOCALIZACAO_USUARIO') {

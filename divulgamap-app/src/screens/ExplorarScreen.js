@@ -254,6 +254,9 @@ export default function ExplorarScreen({ navigation }) {
         id: empresa.id_empresa,
         latitude: parseFloat(empresa.latitude),
         longitude: parseFloat(empresa.longitude),
+        nome: empresa.nome_fantasia,
+        // Ramo da empresa; sem ramo, a primeira categoria
+        descricao: empresa.ramo || (empresa.categorias || '').split(',')[0].trim(),
       })),
     [empresas]
   );
