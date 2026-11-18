@@ -278,7 +278,7 @@ export default function TelaMapaBase({
           </LinearGradient>
         </TouchableOpacity>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtros}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.faixaFiltros} contentContainerStyle={styles.filtros}>
           {categorias.map((categoria) => (
             <TouchableOpacity
               key={categoria}
@@ -324,7 +324,9 @@ const styles = StyleSheet.create({
   },
   iconeLogo: { width: 18, height: 20, marginRight: 8 },
   inputBusca: { flex: 1, fontFamily: 'Poppins_400Regular', includeFontPadding: false, fontSize: fs(16), color: colors.cinzaPlaceholder, paddingVertical: 4 },
-  filtros: { paddingRight: 14 },
+  // Rolagem até as bordas da tela; o primeiro chip alinha com a barra de busca
+  faixaFiltros: { marginHorizontal: -14 },
+  filtros: { paddingHorizontal: 14 },
   chip: {
     backgroundColor: colors.brancoFundo, borderWidth: 1, borderColor: '#E0E0E0',
     borderRadius: 18, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8,

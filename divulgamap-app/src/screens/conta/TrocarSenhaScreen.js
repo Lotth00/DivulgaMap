@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import TelaConta from '../../components/conta/TelaConta';
+import BotaoOlho from '../../components/BotaoOlho';
 import { useDadosUsuario, dataParaCampo } from '../../components/conta/util';
 import colors from '../../theme/colors';
 import tipografia, { fs } from '../../theme/tipografia';
@@ -34,11 +35,7 @@ function CampoGradiente({ valor, onMudar, placeholder, senha = false, teclado, m
         keyboardType={teclado}
         maxLength={maxLength}
       />
-      {senha && (
-        <TouchableOpacity onPress={() => setVisivel((v) => !v)} accessibilityLabel={visivel ? 'Esconder senha' : 'Mostrar senha'}>
-          <Ionicons name={visivel ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textoSecundario} />
-        </TouchableOpacity>
-      )}
+      {senha && <BotaoOlho visivel={visivel} onAlternar={() => setVisivel((v) => !v)} />}
     </LinearGradient>
   );
 }

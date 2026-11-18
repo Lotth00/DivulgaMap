@@ -10,6 +10,7 @@ import { CommonActions } from '@react-navigation/native';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AvisoConectando from '../components/AvisoConectando';
+import CampoSenha from '../components/CampoSenha';
 import { avisarEmBreve } from '../components/conta/util';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
@@ -89,14 +90,7 @@ export default function EntrarScreen({ navigation }) {
               autoCapitalize="none"
               keyboardType="email-address"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Senha"
-              placeholderTextColor={colors.cinzaPlaceholder}
-              value={senha}
-              onChangeText={setSenha}
-              secureTextEntry
-            />
+            <CampoSenha placeholder="Senha" value={senha} onChangeText={setSenha} />
 
             <TouchableOpacity onPress={() => avisarEmBreve('Recuperar a senha sem entrar na conta')}>
               <Text style={styles.linkEsqueceu}>Esqueceu a senha?</Text>
@@ -145,7 +139,7 @@ const styles = StyleSheet.create({
     paddingTop: 32,
   },
   titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: fs(26), textAlign: 'center', marginBottom: 24 },
-  input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14 },
+  input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14, color: colors.pretoTexto },
   linkEsqueceu: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, color: colors.azulLink, textDecorationLine: 'underline', marginBottom: 20 },
   botao: { backgroundColor: colors.pretoTexto, paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginBottom: 20 },
   textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: fs(15) },

@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import AvisoConectando from '../components/AvisoConectando';
+import CampoSenha from '../components/CampoSenha';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
 
@@ -66,8 +67,8 @@ export default function CriarContaScreen({ navigation }) {
 
             <TextInput style={styles.input} placeholder="Nome" placeholderTextColor={colors.cinzaPlaceholder} value={nome} onChangeText={setNome} />
             <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.cinzaPlaceholder} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={colors.cinzaPlaceholder} value={senha} onChangeText={setSenha} secureTextEntry />
-            <TextInput style={styles.input} placeholder="Digite novamente sua senha" placeholderTextColor={colors.cinzaPlaceholder} value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry />
+            <CampoSenha placeholder="Senha" value={senha} onChangeText={setSenha} />
+            <CampoSenha placeholder="Digite novamente sua senha" value={confirmarSenha} onChangeText={setConfirmarSenha} />
 
             <TouchableOpacity style={styles.botao} onPress={handleCriarConta} disabled={carregando}>
               <Text style={styles.textoBotao}>{carregando ? 'CRIANDO...' : 'CRIAR CONTA'}</Text>
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     paddingTop: 32,
   },
   titulo: { fontFamily: 'Koulen_400Regular', includeFontPadding: false, fontSize: fs(26), textAlign: 'center', marginBottom: 24 },
-  input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14 },
+  input: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, backgroundColor: colors.cinzaInput, borderRadius: 10, padding: 14, marginBottom: 14, color: colors.pretoTexto },
   botao: { backgroundColor: colors.pretoTexto, paddingVertical: 16, borderRadius: 10, alignItems: 'center', marginTop: 8, marginBottom: 20 },
   textoBotao: { fontFamily: 'Poppins_600SemiBold', includeFontPadding: false, color: colors.brancoFundo, fontSize: fs(15) },
   linkCriar: { fontFamily: 'Poppins_400Regular', includeFontPadding: false, textAlign: 'center' },
