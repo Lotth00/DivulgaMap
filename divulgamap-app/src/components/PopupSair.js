@@ -3,16 +3,20 @@ import { Modal, Pressable, View, Text, TouchableOpacity, StyleSheet } from 'reac
 import colors from '../theme/colors';
 import tipografia from '../theme/tipografia';
 
-// Confirmação para sair da conta
-export default function PopupSair({ visivel, onCancelar, onConfirmar }) {
+// Confirmação de saída (da conta, por padrão, ou do aplicativo)
+export default function PopupSair({
+  visivel, onCancelar, onConfirmar,
+  pergunta = 'Tem certeza que quer sair de sua conta?',
+  textoConfirmar = 'Sair',
+}) {
   return (
     <Modal visible={visivel} transparent animationType="fade" onRequestClose={onCancelar}>
       <Pressable style={styles.fundo} onPress={onCancelar}>
         <Pressable style={styles.cartao} onPress={() => {}}>
-          <Text style={styles.pergunta}>Tem certeza que quer sair de sua conta?</Text>
+          <Text style={styles.pergunta}>{pergunta}</Text>
           <View style={styles.divisoria} />
           <TouchableOpacity onPress={onConfirmar} style={styles.opcao} activeOpacity={0.6}>
-            <Text style={styles.textoSair}>Sair</Text>
+            <Text style={styles.textoSair}>{textoConfirmar}</Text>
           </TouchableOpacity>
           <View style={styles.divisoria} />
           <TouchableOpacity onPress={onCancelar} style={styles.opcao} activeOpacity={0.6}>

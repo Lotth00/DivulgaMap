@@ -2,15 +2,24 @@ import React, { useEffect } from 'react';
 import { Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../theme/colors';
+import { CHAVE_WELCOME_VISTA } from './WelcomeScreen';
 
+const TEMPO_MINIMO = 1200;
+
+// Abertura: Welcome só na primeira vez; depois, direto para o Explorar
 export default function LoadingScreen({ navigation }) {
   useEffect(() => {
-    const temporizador = setTimeout(() => {
-      navigation.replace('Welcome');
-    }, 1200);
+    let ativo = true;
+    const espera = new Promise((resolver) => setTimeout(resolver, TEMPO_MINIMO));
+    const leitura = AsyncStorage.getItem(CHAVE_WELCOME_VISTA).catch(() => null);
 
-    return () => clearTimeout(temporizador);
+    Promise.all([leitura, espera]).then(([vista]) => {
+      if (ativo) navigation.replace(vista ? 'Principal' : 'Welcome');
+    });
+
+    return () => { ativo = false; };
   }, []);
 
   return (

@@ -17,7 +17,7 @@ const AVISO = [
   'Isso não pode ser desfeito. Para confirmar, vamos pedir a sua senha.',
 ].join('\n');
 
-// Exclusão de conta (Figma 519:1078): pede a senha e volta para a Welcome
+// Exclusão de conta (Figma 519:1078): pede a senha e volta ao Explorar como visitante
 export default function ExcluirContaScreen({ navigation }) {
   const { sair } = useAuth();
   const [pedindoSenha, setPedindoSenha] = useState(false);
@@ -29,7 +29,7 @@ export default function ExcluirContaScreen({ navigation }) {
       await api.delete('/usuarios/me', { data: { senha } });
       setPedindoSenha(false);
       await sair();
-      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'Principal' }] });
       Alert.alert('Conta excluída', 'Sua conta e os seus dados foram apagados.');
     } catch (erro) {
       Alert.alert('Não foi possível excluir', erro.response?.data?.erro || 'Confira sua conexão e tente de novo.');

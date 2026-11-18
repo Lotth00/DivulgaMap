@@ -1,5 +1,6 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { BackHandler } from 'react-native';
+import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
@@ -48,17 +49,44 @@ import FeedbackScreen from '../screens/conta/FeedbackScreen';
 import AtividadeScreen from '../screens/conta/AtividadeScreen';
 import RegistroAtividadesScreen from '../screens/admin/RegistroAtividadesScreen';
 import TabBarPersonalizada from './TabBarPersonalizada';
+import PopupSair from '../components/PopupSair';
 
 const Stack = createStackNavigator();
 const Tabs = createBottomTabNavigator();
 
-function AreaPrincipal() {
+function AreaPrincipal({ route }) {
+  const [confirmandoSaida, setConfirmandoSaida] = useState(false);
+  const abaAtual = route.state?.index ?? 0;
+
+  // Voltar no Explorar pergunta antes de fechar o app; nas outras abas, volta ao Explorar
+  useFocusEffect(
+    useCallback(() => {
+      if (abaAtual !== 0) return undefined;
+      const assinatura = BackHandler.addEventListener('hardwareBackPress', () => {
+        setConfirmandoSaida(true);
+        return true;
+      });
+      return () => assinatura.remove();
+    }, [abaAtual])
+  );
+
   return (
-    <Tabs.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBarPersonalizada {...props} />}>
-      <Tabs.Screen name="Explorar" component={ExplorarScreen} />
-      <Tabs.Screen name="Salvos" component={SalvosScreen} />
-      <Tabs.Screen name="Conta" component={ContaScreen} />
-    </Tabs.Navigator>
+    <>
+      <Tabs.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBarPersonalizada {...props} />}>
+        <Tabs.Screen name="Explorar" component={ExplorarScreen} />
+        <Tabs.Screen name="Salvos" component={SalvosScreen} />
+        <Tabs.Screen name="Conta" component={ContaScreen} />
+      </Tabs.Navigator>
+      <PopupSair
+        visivel={confirmandoSaida}
+        pergunta="Deseja sair do aplicativo?"
+        onCancelar={() => setConfirmandoSaida(false)}
+        onConfirmar={() => {
+          setConfirmandoSaida(false);
+          BackHandler.exitApp();
+        }}
+      />
+    </>
   );
 }
 

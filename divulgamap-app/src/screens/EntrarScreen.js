@@ -6,12 +6,26 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import AvisoConectando from '../components/AvisoConectando';
 import { avisarEmBreve } from '../components/conta/util';
 import colors from '../theme/colors';
 import { fs } from '../theme/tipografia';
+
+const TELAS_DE_ENTRADA = ['Welcome', 'Entrar', 'CriarConta'];
+
+// Depois do login: tira as telas de entrada da pilha e volta para onde a pessoa estava
+function sairDasTelasDeEntrada(navigation) {
+  navigation.dispatch((estado) => {
+    const rotas = estado.routes.filter((rota) => !TELAS_DE_ENTRADA.includes(rota.name));
+    if (rotas.length === 0) {
+      return CommonActions.reset({ index: 0, routes: [{ name: 'Principal' }] });
+    }
+    return CommonActions.reset({ ...estado, routes: rotas, index: rotas.length - 1 });
+  });
+}
 
 export default function EntrarScreen({ navigation }) {
   const { entrar } = useAuth();
@@ -29,7 +43,7 @@ export default function EntrarScreen({ navigation }) {
     try {
       const resposta = await api.post('/auth/login', { email: email.trim(), senha });
       await entrar(resposta.data.token, resposta.data.usuario);
-      navigation.navigate('Principal');
+      sairDasTelasDeEntrada(navigation);
     } catch (erro) {
       // Sem resposta é falta de conexão; 401 é e-mail ou senha errados
       if (!erro.response) {
@@ -105,7 +119,7 @@ export default function EntrarScreen({ navigation }) {
 
             <Text style={styles.linkCriar}>
               Ainda não tem uma conta?{' '}
-              <Text style={styles.linkAzul} onPress={() => navigation.navigate('CriarConta')}>
+              <Text style={styles.linkAzul} onPress={() => navigation.replace('CriarConta')}>
                 Clique aqui
               </Text>
             </Text>

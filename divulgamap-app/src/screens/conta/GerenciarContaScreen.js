@@ -19,7 +19,7 @@ export default function GerenciarContaScreen({ navigation }) {
   async function confirmarSaida() {
     setConfirmandoSaida(false);
     await sair();
-    navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'Principal' }] });
   }
 
   return (

@@ -28,7 +28,7 @@ export default function CriarContaScreen({ navigation }) {
     try {
       await api.post('/auth/cadastro', { nome, email, senha });
       Alert.alert('Conta criada', 'Tudo certo! Agora é só entrar com o seu e-mail e a senha.');
-      navigation.navigate('Entrar');
+      navigation.replace('Entrar');
     } catch (erro) {
       if (!erro.response) {
         Alert.alert('Sem conexão', 'Não foi possível falar com o servidor. Confira a internet e tente de novo.');
@@ -76,7 +76,7 @@ export default function CriarContaScreen({ navigation }) {
 
             <Text style={styles.linkCriar}>
               Você já tem uma conta?{' '}
-              <Text style={styles.linkAzul} onPress={() => navigation.navigate('Entrar')}>
+              <Text style={styles.linkAzul} onPress={() => navigation.replace('Entrar')}>
                 Clique aqui
               </Text>
             </Text>
